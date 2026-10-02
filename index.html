@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Тренировки"><meta name="theme-color" content="#0d0f12">
+<title>Тренировки — автономный трекер</title>
+<style>
+:root{--bg:#0d0f12;--card:#171a20;--card2:#20242b;--line:#333944;--text:#f6f7f8;--muted:#a4abb5;--ok:#9bd58f;--warn:#e6c778}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1080px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-size:25px;margin:4px 0 2px}h2{margin:4px 0 6px}.muted{color:var(--muted)}.small{font-size:12px}
+.blocks{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:18px 0}.block,.day,.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:11px;padding:10px;cursor:pointer}
+.block.active,.day.active{border-color:var(--ok);background:#1d2920}.block span{display:block;font-size:10px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:210px 1fr;gap:14px}.days{display:grid;gap:7px}.day{text-align:left}.day b{display:block;margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px}.info{background:var(--card2);border-radius:11px;padding:11px;margin-top:10px;line-height:1.4}
+.ex{padding:15px 0;border-bottom:1px solid var(--line)}.ex:last-child{border-bottom:0}
+.exhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.ename{font-weight:700;font-size:16px}.prescription{text-align:right}.target{font-weight:700}.rec{color:var(--ok);font-weight:700}
+.entry{display:grid;grid-template-columns:100px 1fr 74px;gap:8px;align-items:end;margin-top:10px}.sets{display:flex;gap:6px}.sets label{flex:1;min-width:0}
+label{font-size:11px;color:var(--muted)} input{width:100%;margin-top:4px;background:#101216;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 6px;font-size:16px;text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.done.ok{border-color:var(--ok);background:#1d2920}.warning{color:var(--warn)}
+.legend{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+@media(max-width:760px){
+body{font-size:16px;-webkit-text-size-adjust:100%}
+.wrap{padding:calc(14px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+h1{font-size:22px;line-height:1.15}.blocks{display:flex;overflow-x:auto;flex-wrap:nowrap;gap:7px;margin:14px -2px;padding:2px 2px 7px;scroll-snap-type:x proximity}
+.block{min-width:88px;scroll-snap-align:start}.layout{grid-template-columns:1fr}.days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;background:var(--bg);padding:6px 0}
+.day{padding:11px 8px;text-align:center;min-width:0}.day b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.day .small{font-size:10px}
+.card{padding:13px}.info{margin-top:8px}.ex{padding:17px 0}.exhead{display:block}.prescription{text-align:left;margin-top:7px}.target{font-size:15px}
+.entry{display:grid;grid-template-columns:76px minmax(0,1fr) 58px;gap:6px}.sets{gap:4px}.sets label{font-size:10px}.sets input{padding:10px 2px}
+input{font-size:16px;min-height:44px}.btn{min-height:44px}.actions{display:grid;grid-template-columns:1fr;gap:8px}.actions .done{grid-column:auto}
+.legend{padding-bottom:8px}
+}
+</style></head>
+<body><div class="wrap">
+<div class="top"><div><div class="small muted">АВТОНОМНЫЙ ЦИКЛ · A → B → C → D</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Первая ротация — калибровка. Дальше веса рассчитываются автоматически.</div><div class="small muted mobilehint">На iPhone: для интерактива открой файл в Safari, а не во встроенном просмотрщике файлов.</div></div><div class="small muted">Данные сохраняются в этом браузере</div></div>
+<div id="blocks" class="blocks">
+<button class="block active"><b>1</b><span>Калибровка</span></button><button class="block"><b>2</b><span>Рост</span></button><button class="block"><b>3</b><span>Рост</span></button><button class="block"><b>4</b><span>Разгрузка</span></button><button class="block"><b>5</b><span>Рост</span></button><button class="block"><b>6</b><span>Сила</span></button><button class="block"><b>7</b><span>Сила</span></button><button class="block"><b>8</b><span>Контроль</span></button>
+</div>
+<div class="layout">
+<aside><div id="days" class="days">
+<button class="day active"><span class="small">FULL BODY A</span><b>Становая</b></button><button class="day"><span class="small">FULL BODY B</span><b>Жим</b></button><button class="day"><span class="small">FULL BODY C</span><b>Верх</b></button><button class="day"><span class="small">FULL BODY D</span><b>Грудь</b></button>
+</div>
+<div id="phaseInfo" class="info"></div>
+<div class="info small"><b>Что вводить:</b><br>фактический вес, повторы каждого рабочего подхода и RIR последнего подхода. Целевые подходы, повторы, RIR и следующий вес задаёт трекер.</div>
+</aside>
+<main class="card">
+<div id="phase" class="small muted">Блок 1 · Калибровка</div><h2 id="title">A · становая + грудь</h2><div id="note" class="muted">Силовой приоритет становой + верх.</div>
+<div id="list"><div class="info"><b>Если ты видишь эту статичную версию:</b><br>просмотрщик iPhone не запустил JavaScript. Для автоподсчёта файл нужно открыть в браузере с JavaScript.</div></div>
+<div class="actions"><button id="done" class="btn done">Отметить выполненной</button><button id="export" class="btn">Экспорт данных</button><button id="reset" class="btn">Сбросить всё</button></div>
+<div class="legend">RIR = сколько чистых повторов осталось в запасе. Для расчёта базовых движений используется оценка e1RM с поправкой на RIR; для аксессуаров — double progression. Рекомендация округляется под шаг конкретного упражнения.</div>
+</main></div></div>
+<script>
+const phaseNames=["Калибровка","Рост","Рост","Разгрузка","Рост","Сила","Сила","Контроль"];
+const phaseDesc=[
+"Выполни назначенный диапазон привычным рабочим весом. Эти данные станут базой расчётов.",
+"Наращиваем качественный объём. Верх прогрессирует активнее ног.",
+"Продолжаем прогрессию по выполнению диапазона и RIR.",
+"Снижаем рабочий вес примерно на 10% и убираем один подход там, где их больше двух.",
+"Возвращаемся к росту от результатов до разгрузки.",
+"У базовых движений меньше повторов и выше интенсивность. Аксессуары остаются гипертрофийными.",
+"Продолжаем силовой блок без отказных становых.",
+"Фиксируем новые рабочие показатели. Не требуется настоящий 1ПМ."
+];
+
+const E = {
+dead:{name:"Становая тяга",kind:"main",group:"dead",base:80,step:2.5,sets:3,range:[3,5],rir:2},
+inc:{name:"Жим гантелей на наклонной",kind:"hyper",group:"chest",base:18,step:2,sets:3,range:[8,10],rir:2},
+lat:{name:"Тяга верхнего блока",kind:"hyper",group:"back",base:40,step:2.5,sets:3,range:[8,10],rir:2},
+ext:{name:"Разгибание ног",kind:"leg",group:"legs",base:37.5,step:2.5,sets:2,range:[10,12],rir:2},
+latraise:{name:"Махи на плечи в кроссовере",kind:"hyper",group:"shoulders",base:12,step:1,sets:3,range:[12,15],rir:2},
+tri:{name:"Трицепс из-за головы",kind:"hyper",group:"arms",base:6,step:1,sets:3,range:[10,12],rir:2},
+foreflex:{name:"Предплечья — сгибание кисти",kind:"hyper",group:"forearms",base:null,step:1,sets:3,range:[12,15],rir:2},
+bench:{name:"Жим штанги лёжа",kind:"main",group:"chest",base:50,step:2.5,sets:3,range:[6,8],rir:2},
+squat:{name:"Присед со штангой",kind:"legmain",group:"legs",base:45,step:2.5,sets:2,range:[5,8],rir:2},
+row:{name:"Горизонтальная тяга блока",kind:"hyper",group:"back",base:40,step:2.5,sets:3,range:[8,10],rir:2},
+curlleg:{name:"Сгибание ног",kind:"leg",group:"legs",base:25,step:2.5,sets:2,range:[10,12],rir:2},
+curl:{name:"Бицепс сидя с супинацией",kind:"hyper",group:"arms",base:9,step:1,sets:3,range:[8,10],rir:2},
+foreext:{name:"Предплечья — разгибание кисти",kind:"hyper",group:"forearms",base:null,step:1,sets:3,range:[12,15],rir:2},
+legpress:{name:"Жим ногами",kind:"leg",group:"legs",base:null,step:5,sets:2,range:[8,10],rir:2},
+onearm:{name:"Тяга верхнего блока одной рукой",kind:"hyper",group:"back",base:15,step:1,sets:4,range:[8,10],rir:2},
+goblet:{name:"Goblet squat",kind:"leg",group:"legs",base:null,step:2,sets:2,range:[10,12],rir:2},
+hammer:{name:"Молотки",kind:"hyper",group:"arms",base:9,step:1,sets:3,range:[10,12],rir:2},
+machine:{name:"Жим на грудь в тренажёре",kind:"hyper",group:"chest",base:55,step:5,sets:3,range:[8,10],rir:2},
+cross:{name:"Кроссовер на грудь",kind:"hyper",group:"chest",base:null,step:1,sets:3,range:[10,15],rir:2}
+};
+
+const days={
+A:{name:"A · становая + грудь",note:"Силовой приоритет становой + верх. Ноги без дополнительной ягодичной специализации.",ids:["dead","inc","lat","ext","latraise","tri","foreflex"]},
+B:{name:"B · жим + присед",note:"Жим — часть специализации груди. Присед остаётся малым объёмом.",ids:["bench","squat","row","curlleg","latraise","curl","foreext"]},
+C:{name:"C · верх + умеренные ноги",note:"Верх получает основной объём; низ — поддерживающий.",ids:["inc","legpress","onearm","goblet","latraise","tri","hammer"]},
+D:{name:"D · специализация груди",note:"Без отдельной тяги на спину: машинный жим + кроссовер дают груди дополнительную качественную работу.",ids:["machine","cross","latraise","hammer"]}
+};
+
+let S=JSON.parse(localStorage.getItem("autoTraining4")||'{"block":1,"day":"A","logs":{},"done":{}}');
+function save(){localStorage.setItem("autoTraining4",JSON.stringify(S))}
+function roundStep(v,step){return Math.max(step,Math.round(v/step)*step)}
+function lastLog(id,beforeBlock){
+  for(let b=beforeBlock;b>=1;b--){for(const d of ["D","C","B","A"]){let k=b+d+"-"+id,l=S.logs[k];if(l&&l.weight&&l.sets&&l.sets.some(Boolean))return l}}
+  return null
+}
+function prescription(e,b){
+ let sets=e.sets, lo=e.range[0], hi=e.range[1], rir=e.rir;
+ if(b===4){sets=Math.max(2,sets-1); rir=3}
+ if((b===6||b===7) && (e.kind==="main"||e.kind==="legmain")){
+   if(e.group==="dead"){lo=3;hi=4;rir=2}else{lo=4;hi=6;rir=2}
+ }
+ if(b===8 && (e.kind==="main"||e.kind==="legmain")){lo=3;hi=5;rir=2}
+ return {sets,lo,hi,rir}
+}
+function recommend(id,b){
+ const e=E[id], p=prescription(e,b);
+ if(b===1) return e.base;
+ let prev=lastLog(id,b-1); if(!prev) return e.base;
+ let w=Number(prev.weight); if(!w) return e.base;
+ let reps=(prev.sets||[]).map(Number).filter(x=>x>0), rir=Number(prev.rir);
+ if(b===4) return roundStep(w*0.90,e.step);
+ if(!reps.length) return w;
+ if(e.kind==="main"||e.kind==="legmain"){
+   let best=Math.max(...reps), adj=best+(Number.isFinite(rir)?rir:2);
+   let e1rm=w*(1+adj/30);
+   let targetRep=(p.lo+p.hi)/2, calc=e1rm/(1+(targetRep+p.rir)/30);
+   let rec=roundStep(calc,e.step);
+   if(b===6||b===7) rec=Math.max(rec,w);
+   if(Math.min(...reps)<p.lo-1 || rir===0) rec=Math.min(rec,w);
+   return rec;
+ } else {
+   let allTop=reps.length>=p.sets && reps.slice(0,p.sets).every(r=>r>=p.hi);
+   let under=reps.some(r=>r<p.lo);
+   if(allTop && rir>=1) return roundStep(w+e.step,e.step);
+   if(under && rir===0) return roundStep(Math.max(e.step,w-e.step),e.step);
+   return w;
+ }
+}
+function fmt(v){return v==null?"ввести на калибровке":(Number.isInteger(v)?v:v.toFixed(1))+" кг"}
+function render(){
+ let B=document.querySelector("#blocks");B.innerHTML="";
+ phaseNames.forEach((p,i)=>{let b=document.createElement("button");b.className="block "+(S.block===i+1?"active":"");b.innerHTML="<b>"+(i+1)+"</b><span>"+p+"</span>";b.onclick=()=>{S.block=i+1;save();render()};B.appendChild(b)});
+ let D=document.querySelector("#days");D.innerHTML="";
+ Object.entries(days).forEach(([k,d])=>{let b=document.createElement("button");b.className="day "+(S.day===k?"active":"");b.innerHTML="<span class=small>FULL BODY "+k+"</span><b>"+d.name.split(" · ")[1]+(S.done[S.block+k]?" ✓":"")+"</b>";b.onclick=()=>{S.day=k;save();render()};D.appendChild(b)});
+ document.querySelector("#phaseInfo").innerHTML="<b>"+phaseNames[S.block-1]+"</b><br><span class=small>"+phaseDesc[S.block-1]+"</span>";
+ document.querySelector("#phase").textContent="Блок "+S.block+" · "+phaseNames[S.block-1];
+ let d=days[S.day];document.querySelector("#title").textContent=d.name;document.querySelector("#note").textContent=d.note;
+ let L=document.querySelector("#list");L.innerHTML="";
+ d.ids.forEach(id=>{
+   let e=E[id],p=prescription(e,S.block),key=S.block+S.day+"-"+id,l=S.logs[key]||{},rec=recommend(id,S.block);
+   let row=document.createElement("div");row.className="ex";
+   let boxes=Array.from({length:p.sets},(_,j)=>"<label>П"+(j+1)+"<input data-set='"+j+"' type=number min=0 max=50 inputmode=numeric value='"+((l.sets&&l.sets[j])||"")+"'></label>").join("");
+   row.innerHTML="<div class=exhead><div><div class=ename>"+e.name+"</div><div class=plan>"+(S.block===1?"Калибровочный вес":"Рекомендованный вес")+": <span class=rec>"+fmt(rec)+"</span></div></div><div class=prescription><div class=target>"+p.sets+"×"+p.lo+"–"+p.hi+" · RIR "+p.rir+"</div><div class='small muted'>рабочие подходы · цель</div></div></div>"+
+   "<div class=entry><label>Факт. вес<input data-f=weight type=number step='"+e.step+"' value='"+(l.weight||"")+"'></label><div class=sets>"+boxes+"</div><label>RIR<input data-f=rir type=number min=0 max=5 value='"+(l.rir||"")+"'></label></div>";
+   row.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{
+     S.logs[key]=S.logs[key]||{};
+     if(inp.dataset.set!==undefined){S.logs[key].sets=S.logs[key].sets||[];S.logs[key].sets[Number(inp.dataset.set)]=inp.value}
+     else S.logs[key][inp.dataset.f]=inp.value;
+     save();
+   });
+   L.appendChild(row);
+ });
+ let done=document.querySelector("#done");done.className="btn done "+(S.done[S.block+S.day]?"ok":"");done.textContent=S.done[S.block+S.day]?"✓ Выполнено":"Отметить выполненной";
+}
+document.querySelector("#done").onclick=()=>{let k=S.block+S.day;S.done[k]=!S.done[k];save();render()};
+document.querySelector("#export").onclick=()=>{let blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-data.json";a.click();URL.revokeObjectURL(a.href)};
+document.querySelector("#reset").onclick=()=>{if(confirm("Удалить все введённые тренировки из этого браузера?")){localStorage.removeItem("autoTraining4");location.reload()}};
+render();
+</script></body></html>
