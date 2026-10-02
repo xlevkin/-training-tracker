@@ -64,7 +64,7 @@ const phaseDesc=[
 ];
 
 const E = {
-dead:{name:"Становая тяга",kind:"main",group:"dead",base:80,step:2.5,sets:3,range:[3,5],rir:2},
+dead:{name:"Становая тяга",kind:"main",group:"dead",base:70,step:2.5,sets:3,range:[3,5],rir:2},
 inc:{name:"Жим гантелей на наклонной",kind:"hyper",group:"chest",base:18,step:2,sets:3,range:[8,10],rir:2},
 lat:{name:"Тяга верхнего блока",kind:"hyper",group:"back",base:40,step:2.5,sets:3,range:[8,10],rir:2},
 ext:{name:"Разгибание ног",kind:"leg",group:"legs",base:37.5,step:2.5,sets:2,range:[10,12],rir:2},
@@ -82,14 +82,18 @@ onearm:{name:"Тяга верхнего блока одной рукой",kind:"
 goblet:{name:"Goblet squat",kind:"leg",group:"legs",base:null,step:2,sets:2,range:[10,12],rir:2},
 hammer:{name:"Молотки",kind:"hyper",group:"arms",base:9,step:1,sets:3,range:[10,12],rir:2},
 machine:{name:"Жим на грудь в тренажёре",kind:"hyper",group:"chest",base:55,step:5,sets:3,range:[8,10],rir:2},
-cross:{name:"Кроссовер на грудь",kind:"hyper",group:"chest",base:null,step:1,sets:3,range:[10,15],rir:2}
+cross:{name:"Кроссовер на грудь",kind:"hyper",group:"chest",base:null,step:1,sets:3,range:[10,15],rir:2},
+hyper:{name:"Гиперэкстензия",kind:"hyper",group:"core",base:null,step:2.5,sets:3,range:[10,15],rir:2},
+pallof:{name:"Pallof press",kind:"hyper",group:"core",base:null,step:1,sets:3,range:[10,15],rir:2},
+crunch:{name:"Cable crunch",kind:"hyper",group:"core",base:null,step:1,sets:3,range:[10,15],rir:2},
+knees:{name:"Подъём коленей в упоре",kind:"hyper",group:"core",base:null,step:1,sets:3,range:[8,15],rir:2}
 };
 
 const days={
 A:{name:"A · становая + грудь",note:"Силовой приоритет становой + верх. Ноги без дополнительной ягодичной специализации.",ids:["dead","inc","lat","ext","latraise","tri","foreflex"]},
 B:{name:"B · жим + присед",note:"Жим — часть специализации груди. Присед остаётся малым объёмом.",ids:["bench","squat","row","curlleg","latraise","curl","foreext"]},
 C:{name:"C · верх + умеренные ноги",note:"Верх получает основной объём; низ — поддерживающий.",ids:["inc","legpress","onearm","goblet","latraise","tri","hammer"]},
-D:{name:"D · специализация груди",note:"Без отдельной тяги на спину: машинный жим + кроссовер дают груди дополнительную качественную работу.",ids:["machine","cross","latraise","hammer"]}
+D:{name:"D · грудь + кор",note:"Грудь + кор, без прямой работы на ноги и плечи. Гиперэкстензия — сначала с собственным весом.",ids:["machine","cross","hyper","pallof","crunch","knees"]}
 };
 
 let S=JSON.parse(localStorage.getItem("autoTraining4")||'{"block":1,"day":"A","logs":{},"done":{},"dates":{}}');
