@@ -31,7 +31,7 @@ input{font-size:16px;min-height:44px}.btn{min-height:44px}.actions{display:grid;
 }
 </style></head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">АВТОНОМНЫЙ ЦИКЛ · A → B → C → D</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Первая ротация — калибровка. Дальше веса рассчитываются автоматически.</div><div class="small muted mobilehint">На iPhone: для интерактива открой файл в Safari, а не во встроенном просмотрщике файлов.</div></div><div class="small muted">Данные сохраняются в этом браузере</div></div>
+<div class="top"><div><div class="small muted">АВТОНОМНЫЙ ЦИКЛ · A → B → C → D</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Первая ротация — калибровка. Дальше веса рассчитываются автоматически.</div><div class="small muted mobilehint">Цикл A → B → C → D не привязан к календарной неделе.</div></div><div class="small muted">Данные сохраняются в этом браузере</div></div>
 <div id="blocks" class="blocks">
 <button class="block active"><b>1</b><span>Калибровка</span></button><button class="block"><b>2</b><span>Рост</span></button><button class="block"><b>3</b><span>Рост</span></button><button class="block"><b>4</b><span>Разгрузка</span></button><button class="block"><b>5</b><span>Рост</span></button><button class="block"><b>6</b><span>Сила</span></button><button class="block"><b>7</b><span>Сила</span></button><button class="block"><b>8</b><span>Контроль</span></button>
 </div>
@@ -44,8 +44,10 @@ input{font-size:16px;min-height:44px}.btn{min-height:44px}.actions{display:grid;
 </aside>
 <main class="card">
 <div id="phase" class="small muted">Блок 1 · Калибровка</div><h2 id="title">A · становая + грудь</h2><div id="note" class="muted">Силовой приоритет становой + верх.</div>
-<div id="list"><div class="info"><b>Если ты видишь эту статичную версию:</b><br>просмотрщик iPhone не запустил JavaScript. Для автоподсчёта файл нужно открыть в браузере с JavaScript.</div></div>
-<div class="actions"><button id="done" class="btn done">Отметить выполненной</button><button id="export" class="btn">Экспорт данных</button><button id="reset" class="btn">Сбросить всё</button></div>
+<div id="list"></div>
+<div class="actions"><button id="done" class="btn done">Отметить выполненной</button><button id="copyChat" class="btn">Скопировать тренировку для ChatGPT</button>
+<button id="copyAll" class="btn">Скопировать весь прогресс</button>
+<button id="export" class="btn">Экспорт данных</button><button id="reset" class="btn">Сбросить всё</button></div>
 <div class="legend">RIR = сколько чистых повторов осталось в запасе. Для расчёта базовых движений используется оценка e1RM с поправкой на RIR; для аксессуаров — double progression. Рекомендация округляется под шаг конкретного упражнения.</div>
 </main></div></div>
 <script>
@@ -90,8 +92,8 @@ C:{name:"C · верх + умеренные ноги",note:"Верх получ�
 D:{name:"D · специализация груди",note:"Без отдельной тяги на спину: машинный жим + кроссовер дают груди дополнительную качественную работу.",ids:["machine","cross","latraise","hammer"]}
 };
 
-let S=JSON.parse(localStorage.getItem("autoTraining4")||'{"block":1,"day":"A","logs":{},"done":{}}');
-function save(){localStorage.setItem("autoTraining4",JSON.stringify(S))}
+let S=JSON.parse(localStorage.getItem("autoTraining4")||'{"block":1,"day":"A","logs":{},"done":{},"dates":{}}');
+function save(){S.dates=S.dates||{};localStorage.setItem("autoTraining4",JSON.stringify(S))}
 function roundStep(v,step){return Math.max(step,Math.round(v/step)*step)}
 function lastLog(id,beforeBlock){
   for(let b=beforeBlock;b>=1;b--){for(const d of ["D","C","B","A"]){let k=b+d+"-"+id,l=S.logs[k];if(l&&l.weight&&l.sets&&l.sets.some(Boolean))return l}}
@@ -156,7 +158,36 @@ function render(){
  });
  let done=document.querySelector("#done");done.className="btn done "+(S.done[S.block+S.day]?"ok":"");done.textContent=S.done[S.block+S.day]?"✓ Выполнено":"Отметить выполненной";
 }
-document.querySelector("#done").onclick=()=>{let k=S.block+S.day;S.done[k]=!S.done[k];save();render()};
+document.querySelector("#done").onclick=()=>{let k=S.block+S.day;S.done[k]=!S.done[k];S.dates=S.dates||{};if(S.done[k]&&!S.dates[k])S.dates[k]=new Date().toLocaleDateString("ru-RU");save();render()};
+
+const TRACKER_VERSION="2.1";
+function copyPayload(all=false){
+  const chunks=[], blocks=all?[1,2,3,4,5,6,7,8]:[S.block];
+  for(const b of blocks) for(const d of ["A","B","C","D"]){
+    if(!all && d!==S.day) continue;
+    const p=plans[d], key=b+d;
+    if(!p) continue;
+    const lines=[`Трекер v${TRACKER_VERSION} · Блок ${b} · ${d} · ${p.name}${S.dates&&S.dates[key]?" · "+S.dates[key]:""}`];
+    let any=false;
+    p.items.forEach((x,i)=>{
+      const l=S.logs[key+"-"+i];
+      if(!l || (!l.kg && !l.weight)) return;
+      any=true;
+      const reps=(l.sets||[]).filter(Boolean).join("/");
+      lines.push(`${x[0]}: ${l.kg||l.weight} кг — ${reps||"—"} — RIR ${l.rir||"—"}`);
+    });
+    if(any) chunks.push(lines.join("\n"));
+  }
+  return chunks.join("\n\n");
+}
+async function copyForChat(txt){
+  if(!txt){alert("Здесь пока нет заполненных результатов.");return}
+  try{await navigator.clipboard.writeText(txt);alert("Скопировано. Вставь это сообщение в ChatGPT.");}
+  catch(e){prompt("Скопируй текст:",txt);}
+}
+document.querySelector("#copyChat").onclick=()=>copyForChat(copyPayload(false));
+document.querySelector("#copyAll").onclick=()=>copyForChat(copyPayload(true));
+
 document.querySelector("#export").onclick=()=>{let blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-data.json";a.click();URL.revokeObjectURL(a.href)};
 document.querySelector("#reset").onclick=()=>{if(confirm("Удалить все введённые тренировки из этого браузера?")){localStorage.removeItem("autoTraining4");location.reload()}};
 render();
