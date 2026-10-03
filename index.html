@@ -17,20 +17,20 @@
 .layout{display:grid;grid-template-columns:215px 1fr;gap:14px}.days{display:grid;gap:7px}.day{text-align:left}.day b{display:block}
 .card,.info{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px}.info{background:var(--card2);margin-top:9px;line-height:1.45}
 .ex{padding:15px 0;border-bottom:1px solid var(--line)}.ex:last-child{border-bottom:0}.exhead{display:flex;justify-content:space-between;gap:10px}.ename{font-size:16px;font-weight:700}.target{font-weight:700}.rec{color:var(--good);font-weight:700}
-.meta{font-size:12px;color:var(--muted);margin-top:4px}.entry{display:grid;grid-template-columns:92px 1fr 64px;gap:7px;align-items:end;margin-top:10px}.sets{display:flex;gap:5px}.sets label{flex:1;min-width:0}
+.meta{font-size:12px;color:var(--muted);margin-top:4px}.entry{display:grid;grid-template-columns:1fr 64px;gap:7px;align-items:end;margin-top:10px}.sets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.setbox{display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:0}.setbox label{min-width:0}.gear{display:flex;align-items:center;gap:7px;margin-top:8px;flex-wrap:wrap}.gear input{width:72px;min-height:34px;padding:5px;font-size:14px;margin:0}
 label{font-size:11px;color:var(--muted)} input{width:100%;margin-top:4px;background:#111318;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 4px;font-size:16px;text-align:center}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.ok{border-color:var(--good)!important;background:#1e2920!important}
 @media(max-width:760px){
 #signedOut>div:last-child{grid-template-columns:1fr!important}
 body{font-size:16px;-webkit-text-size-adjust:100%}.wrap{padding:calc(12px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
 h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;padding:2px 2px 7px}.block{min-width:86px}.layout{grid-template-columns:1fr}.days{grid-template-columns:repeat(2,minmax(0,1fr));display:grid}.day{text-align:center;padding:11px 6px}
-.card{padding:13px}.exhead{display:block}.target{margin-top:7px}.entry{grid-template-columns:76px minmax(0,1fr) 58px;gap:5px}.sets{gap:4px}.sets label{font-size:10px}input{min-height:44px;padding:9px 2px}.actions{display:grid;grid-template-columns:1fr}.btn{min-height:46px}
+.card{padding:13px}.exhead{display:block}.target{margin-top:7px}.entry{grid-template-columns:minmax(0,1fr) 58px;gap:5px}.sets{grid-template-columns:1fr;gap:6px}.setbox{grid-template-columns:1fr 1fr}.sets label{font-size:10px}input{min-height:44px;padding:9px 2px}.actions{display:grid;grid-template-columns:1fr}.btn{min-height:46px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.1 · cloud sync</div></div>
+<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.2 · cloud sync</div></div>
 <div id="cloudPanel" class="info" style="margin:14px 0">
   <div id="signedOut">
     <b>Облачная синхронизация</b>
@@ -51,14 +51,14 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <div id="blocks" class="blocks"></div>
 <div class="layout">
 <aside><div id="days" class="days"></div><div id="phaseInfo" class="info"></div>
-<div class="info small"><b>Ввод:</b> фактический вес, повторы каждого <b>рабочего</b> подхода и RIR последнего рабочего подхода. Разминочные подходы сюда не входят.</div></aside>
+<div class="info small"><b>Ввод:</b> фактические <b>вес и повторы каждого рабочего подхода</b> + RIR последнего рабочего подхода. Вес можно менять вручную в любом подходе. Разминочные подходы сюда не входят.</div></aside>
 <main class="card"><div id="phase" class="small muted"></div><h2 id="title"></h2><div id="note" class="muted"></div><div id="list"></div>
 <div class="actions"><button id="done" class="btn">Отметить выполненной</button><button id="copy" class="btn">Скопировать тренировку для ChatGPT</button><button id="copyAll" class="btn">Скопировать весь прогресс</button><button id="export" class="btn">Экспорт JSON</button></div>
-<div class="info small"><b>Логика:</b> базовые движения — оценочный 1ПМ + RIR с ограничением слишком резких скачков; аксессуары — double progression. В разгрузке снижаются вес и объём. Для ног прогрессия намеренно консервативная.</div>
+<div class="info small"><b>Логика:</b> базовые движения — оценочный 1ПМ по фактическому весу каждого подхода + RIR; аксессуары — double progression. Шаг веса хранится отдельно для каждого упражнения и синхронизируется. В разгрузке снижаются вес и объём. Для ног прогрессия намеренно консервативная.</div>
 </main></div></div>
 
 <script>
-const VERSION="3.1";
+const VERSION="3.2";
 const phaseNames=["Калибровка","Рост","Рост","Разгрузка","Рост","Сила","Сила","Контроль"];
 const phaseDesc=[
 "Первая ротация A–D: вводишь реальные результаты, они становятся базой.",
@@ -85,7 +85,7 @@ squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:45,step:2.
 row:{n:"Горизонтальная тяга блока",k:"hyper",g:"back",base:40,step:2.5,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
 curlleg:{n:"Сгибание ног",k:"leg",g:"legs",base:25,step:2.5,s:2,r:[10,12],rir:1,rest:"1,5–2 мин"},
 dbshoulder:{n:"Жим гантелей сидя",k:"hyper",g:"shoulders",base:12.5,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин"},
-curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:9,step:1,s:3,r:[8,10],rir:1,rest:"1,5–2 мин"},
+curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:9,step:2,s:3,r:[8,10],rir:1,rest:"1,5–2 мин"},
 foreext:{n:"Предплечья — разгибание кисти",k:"hyper",g:"forearms",base:null,step:1,s:3,r:[12,15],rir:1,rest:"1–2 мин"},
 
 legpress:{n:"Жим ногами",k:"leg",g:"legs",base:null,step:5,s:2,r:[8,10],rir:2,rest:"2–3 мин"},
@@ -93,7 +93,7 @@ onearm:{n:"Тяга верхнего блока одной рукой",k:"hyper"
 goblet:{n:"Goblet squat",k:"leg",g:"legs",base:null,step:2,s:2,r:[10,12],rir:2,rest:"2–3 мин"},
 rear:{n:"Reverse pec-deck — задняя дельта",k:"hyper",g:"shoulders",base:30,step:2.5,s:3,r:[10,15],rir:1,rest:"1,5–2 мин"},
 tri2:{n:"Трицепс из-за головы",k:"hyper",g:"arms",base:6,step:1,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
-hammer:{n:"Молотки",k:"hyper",g:"arms",base:9,step:1,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
+hammer:{n:"Молотки",k:"hyper",g:"arms",base:9,step:2,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
 
 machine:{n:"Жим на грудь в тренажёре",k:"hyper",g:"chest",base:55,step:5,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
 cross:{n:"Кроссовер на грудь",k:"hyper",g:"chest",base:null,step:1,s:3,r:[10,15],rir:1,rest:"1,5–2 мин"},
@@ -116,7 +116,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let cloudUser=null, syncTimer=null, applyingCloud=false;
 
 let S;
-try{S=JSON.parse(localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
+try{S=JSON.parse(localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
 if(!S){
   // migrate the compatible history from previous versions if present
   try{S=JSON.parse(localStorage.getItem("trainingTrackerV21")||localStorage.getItem("autoTraining4")||"null")}catch(e){}
@@ -124,11 +124,13 @@ if(!S){
 if(!S)S={block:1,day:"A",logs:{},done:{},dates:{}};
 S._modifiedAt=S._modifiedAt||Date.now();
 S.block=S.block||1; S.day=S.day||"A"; S.logs=S.logs||{}; S.done=S.done||{}; S.dates=S.dates||{};
+S.steps=S.steps||{};
+
 
 function setSyncStatus(t){const el=document.querySelector("#syncStatus");if(el)el.textContent=t}
 function save(){
   if(!applyingCloud)S._modifiedAt=Date.now();
-  localStorage.setItem("trainingTrackerV31",JSON.stringify(S));
+  localStorage.setItem("trainingTrackerV32",JSON.stringify(S));
   if(cloudUser&&!applyingCloud){
     setSyncStatus("Сохраняю…");
     clearTimeout(syncTimer);
@@ -157,8 +159,8 @@ async function pullOrSeedCloud(){
   if(remoteTime>localTime){
     applyingCloud=true;
     S=remote;
-    S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};
-    localStorage.setItem("trainingTrackerV31",JSON.stringify(S));
+    S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};S.steps=S.steps||{};
+    localStorage.setItem("trainingTrackerV32",JSON.stringify(S));
     applyingCloud=false;
     render();
   } else if(localTime>remoteTime){
@@ -184,6 +186,30 @@ async function login(){
 }
 async function logout(){await db.auth.signOut()}
 
+
+function stepFor(id){
+  const v=Number(S.steps[id]);
+  return Number.isFinite(v)&&v>0?v:E[id].step;
+}
+function migrateLog(id,l,p){
+  if(!l)return l;
+  l.sets=l.sets||[];
+  l.weights=l.weights||[];
+  // v3.1 stored one common weight. Preserve it as each set's weight.
+  if(l.weight!==undefined && l.weight!=="" && l.weights.every(x=>x===""||x==null)){
+    for(let i=0;i<Math.max(p.s,l.sets.length);i++) if(l.sets[i]!==""&&l.sets[i]!=null) l.weights[i]=l.weight;
+  }
+  return l;
+}
+function setPairs(l,p){
+  l=migrateLog("",l,p)||{};
+  const out=[];
+  for(let i=0;i<p.s;i++){
+    const w=Number(l.weights&&l.weights[i]), r=Number(l.sets&&l.sets[i]);
+    if(Number.isFinite(w)&&Number.isFinite(r)&&r>0)out.push({w,r,i});
+  }
+  return out;
+}
 function rnd(v,st){return Math.max(st,Math.round(v/st)*st)}
 function plan(e,b){
  let s=e.s,lo=e.r[0],hi=e.r[1],rir=e.rir;
@@ -196,32 +222,47 @@ function plan(e,b){
 }
 function prev(id,b){
  for(let bb=b;bb>=1;bb--)for(const d of ["D","C","B","A"]){
-   const l=S.logs[bb+d+"-"+id];
-   if(l && Number(l.weight)>=0 && (l.sets||[]).some(Boolean))return l;
+   const key=bb+d+"-"+id, l=S.logs[key], p=plan(E[id],bb);
+   if(l){
+     migrateLog(id,l,p);
+     if(setPairs(l,p).length)return l;
+   }
  }
  return null;
 }
 function rec(id,b){
- const e=E[id],p=plan(e,b);
+ const e=E[id],p=plan(e,b),st=stepFor(id);
  if(b===1)return e.base;
  const l=prev(id,b-1); if(!l)return e.base;
- const w=Number(l.weight),rs=(l.sets||[]).map(Number).filter(x=>x>0),rir=Number(l.rir);
- if(!Number.isFinite(w)||!rs.length)return e.base;
- if(e.k==="body")return w;
- if(b===4)return rnd(w*.90,e.step);
+ const pairs=setPairs(l,plan(e,Math.max(1,b-1))), rir=Number(l.rir);
+ if(!pairs.length)return e.base;
+ if(e.k==="body")return pairs[pairs.length-1].w;
+ const lastW=pairs[pairs.length-1].w;
+ if(b===4)return rnd(lastW*.90,st);
+
  if(e.k==="main"||e.k==="legmain"){
-   const best=Math.max(...rs), safeRir=Number.isFinite(rir)?rir:2;
-   const e1=w*(1+(best+safeRir)/30),mid=(p.lo+p.hi)/2;
-   let n=rnd(e1/(1+(mid+p.rir)/30),e.step);
-   if(Math.min(...rs)<p.lo-1||safeRir===0)n=Math.min(n,w);
-   const maxJump=e.g==="legs"?e.step:e.step*2;
-   n=Math.min(n,w+maxJump);
+   // Estimate strength from the best completed set, allowing different weights per set.
+   const safeRir=Number.isFinite(rir)?rir:2;
+   const e1=Math.max(...pairs.map(x=>x.w*(1+(x.r+safeRir)/30)));
+   const mid=(p.lo+p.hi)/2;
+   let n=rnd(e1/(1+(mid+p.rir)/30),st);
+   const minReps=Math.min(...pairs.map(x=>x.r));
+   if(minReps<p.lo-1||safeRir===0)n=Math.min(n,lastW);
+   const maxJump=e.g==="legs"?st:st*2;
+   n=Math.min(n,lastW+maxJump);
    return n;
  }
- const top=rs.length>=p.s&&rs.slice(0,p.s).every(x=>x>=p.hi), under=rs.some(x=>x<p.lo);
- if(top && rir>=1)return rnd(w+e.step,e.step);
- if(under && rir===0)return rnd(Math.max(0,w-e.step),e.step);
- return w;
+
+ // Accessories: progress only when every prescribed set is at the top of the range.
+ // If set weights differ, the recommendation starts from the heaviest successfully used weight.
+ const completed=pairs.slice(0,p.s);
+ const allTop=completed.length>=p.s && completed.every(x=>x.r>=p.hi);
+ const under=completed.some(x=>x.r<p.lo);
+ const maxW=Math.max(...completed.map(x=>x.w));
+ const minW=Math.min(...completed.map(x=>x.w));
+ if(allTop && rir>=1)return rnd(maxW+st,st);
+ if(under && rir===0)return rnd(Math.max(0,minW-st),st);
+ return rnd(maxW,st);
 }
 function fmt(v,e){
  if(v==null)return "ввести в калибровке";
@@ -237,10 +278,15 @@ function copyText(all=false){
    const lines=[`Трекер v${VERSION} · Блок ${b} ${phaseNames[b-1]} · ${d}${S.dates[key]?" · "+S.dates[key]:""}`];
    let any=false;
    for(const id of days[d].ids){
-     const l=S.logs[key+"-"+id]; if(!l||l.weight===""||l.weight==null)continue;
-     any=true; const rs=(l.sets||[]).filter(Boolean).join("/");
-     const wt=(E[id].k==="body"&&Number(l.weight)===0)?"собственный вес":`${l.weight} кг`;
-     lines.push(`${E[id].n}: ${wt} — ${rs||"—"} — RIR ${l.rir===""||l.rir==null?"—":l.rir}`);
+     const e=E[id],p=plan(e,b),l=S.logs[key+"-"+id]; if(!l)continue;
+     migrateLog(id,l,p);
+     const pairs=setPairs(l,p); if(!pairs.length)continue;
+     any=true;
+     const sets=pairs.map(x=>{
+       const wt=(e.k==="body"&&x.w===0)?"собственный вес":`${x.w} кг`;
+       return `${wt} × ${x.r}`;
+     }).join(" / ");
+     lines.push(`${e.n}: ${sets} — RIR ${l.rir===""||l.rir==null?"—":l.rir}`);
    }
    if(any)chunks.push(lines.join("\n"));
  }
@@ -271,14 +317,22 @@ function render(){
  const L=document.querySelector("#list");L.innerHTML="";
  d.ids.forEach(id=>{
    const e=E[id],p=plan(e,S.block),key=S.block+S.day+"-"+id,l=S.logs[key]||{},r=rec(id,S.block),row=document.createElement("div");
+   S.logs[key]=l; migrateLog(id,l,p);
    row.className="ex";
-   const boxes=Array.from({length:p.s},(_,j)=>`<label>П${j+1}<input data-set="${j}" type="number" min="0" max="50" inputmode="numeric" value="${(l.sets&&l.sets[j])||""}"></label>`).join("");
-   row.innerHTML=`<div class="exhead"><div><div class="ename">${e.n}</div><div class="meta">${e.note||""}</div><div class="meta">Отдых: <b>${e.rest}</b> · рекомендация: <span class="rec">${fmt(r,e)}</span></div></div><div class="target">${p.s}×${p.lo}–${p.hi} · RIR ${p.rir}</div></div>
-   <div class="entry"><label>Факт. вес<input data-f="weight" type="number" step="${e.step}" value="${l.weight!==undefined?l.weight:""}" placeholder="${e.k==="body"?"0":""}"></label><div class="sets">${boxes}</div><label>RIR<input data-f="rir" type="number" min="0" max="5" value="${l.rir!==undefined?l.rir:""}"></label></div>`;
+   const boxes=Array.from({length:p.s},(_,j)=>{
+     const w=(l.weights&&l.weights[j]!==undefined)?l.weights[j]:"";
+     const reps=(l.sets&&l.sets[j]!==undefined)?l.sets[j]:"";
+     return `<div class="setbox"><label>П${j+1} · кг<input data-weightset="${j}" type="number" step="any" min="0" value="${w}"></label><label>повт.<input data-set="${j}" type="number" min="0" max="50" inputmode="numeric" value="${reps}"></label></div>`;
+   }).join("");
+   const st=stepFor(id);
+   row.innerHTML=`<div class="exhead"><div><div class="ename">${e.n}</div><div class="meta">${e.note||""}</div><div class="meta">Отдых: <b>${e.rest}</b> · рекомендация на следующий раз: <span class="rec">${fmt(r,e)}</span></div><div class="gear small">Шаг оборудования, кг <input data-step type="number" step="0.5" min="0.5" value="${st}"><span class="muted">можно изменить один раз под свой тренажёр</span></div></div><div class="target">${p.s}×${p.lo}–${p.hi} · RIR ${p.rir}</div></div>
+   <div class="entry"><div class="sets">${boxes}</div><label>RIR<input data-f="rir" type="number" min="0" max="5" value="${l.rir!==undefined?l.rir:""}"></label></div>`;
    row.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{
-     S.logs[key]=S.logs[key]||{};
-     if(inp.dataset.set!==undefined){S.logs[key].sets=S.logs[key].sets||[];S.logs[key].sets[Number(inp.dataset.set)]=inp.value}
-     else S.logs[key][inp.dataset.f]=inp.value;
+     S.logs[key]=S.logs[key]||{}; const log=S.logs[key];
+     if(inp.dataset.weightset!==undefined){log.weights=log.weights||[];log.weights[Number(inp.dataset.weightset)]=inp.value}
+     else if(inp.dataset.set!==undefined){log.sets=log.sets||[];log.sets[Number(inp.dataset.set)]=inp.value}
+     else if(inp.dataset.step!==undefined){const v=Number(inp.value);if(Number.isFinite(v)&&v>0)S.steps[id]=v}
+     else log[inp.dataset.f]=inp.value;
      save();
    });
    L.appendChild(row);
@@ -295,7 +349,7 @@ document.querySelector("#copy").onclick=()=>clip(copyText(false));
 document.querySelector("#copyAll").onclick=()=>clip(copyText(true));
 document.querySelector("#export").onclick=()=>{
  const blob=new Blob([JSON.stringify({version:VERSION,...S},null,2)],{type:"application/json"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v3.json";a.click();
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v32.json";a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
 document.querySelector("#loginBtn").onclick=login;
