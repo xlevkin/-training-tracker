@@ -21,14 +21,33 @@
 label{font-size:11px;color:var(--muted)} input{width:100%;margin-top:4px;background:#111318;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 4px;font-size:16px;text-align:center}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.ok{border-color:var(--good)!important;background:#1e2920!important}
 @media(max-width:760px){
+#signedOut>div:last-child{grid-template-columns:1fr!important}
 body{font-size:16px;-webkit-text-size-adjust:100%}.wrap{padding:calc(12px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
 h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;padding:2px 2px 7px}.block{min-width:86px}.layout{grid-template-columns:1fr}.days{grid-template-columns:repeat(2,minmax(0,1fr));display:grid}.day{text-align:center;padding:11px 6px}
 .card{padding:13px}.exhead{display:block}.target{margin-top:7px}.entry{grid-template-columns:76px minmax(0,1fr) 58px;gap:5px}.sets{gap:4px}.sets label{font-size:10px}input{min-height:44px;padding:9px 2px}.actions{display:grid;grid-template-columns:1fr}.btn{min-height:46px}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.0</div></div>
+<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.1 · cloud sync</div></div>
+<div id="cloudPanel" class="info" style="margin:14px 0">
+  <div id="signedOut">
+    <b>Облачная синхронизация</b>
+    <div class="small muted" style="margin:5px 0 9px">Войди тем email и паролем, которые создал в Supabase. После входа состояние трекера синхронизируется между iPhone и Mac.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:7px">
+      <input id="loginEmail" type="email" autocomplete="username" placeholder="Email" style="text-align:left">
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Пароль" style="text-align:left">
+      <button id="loginBtn" class="btn">Войти</button>
+    </div>
+  </div>
+  <div id="signedIn" style="display:none">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+      <div><b id="syncStatus">Подключение…</b><div id="syncUser" class="small muted"></div></div>
+      <button id="logoutBtn" class="btn">Выйти</button>
+    </div>
+  </div>
+</div>
 <div id="blocks" class="blocks"></div>
 <div class="layout">
 <aside><div id="days" class="days"></div><div id="phaseInfo" class="info"></div>
@@ -39,7 +58,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 </main></div></div>
 
 <script>
-const VERSION="3.0";
+const VERSION="3.1";
 const phaseNames=["Калибровка","Рост","Рост","Разгрузка","Рост","Сила","Сила","Контроль"];
 const phaseDesc=[
 "Первая ротация A–D: вводишь реальные результаты, они становятся базой.",
@@ -91,16 +110,80 @@ C:{n:"C · верх + умеренные ноги",note:"Прямые плечи
 D:{n:"D · грудь + бицепс + кор",note:"Без прямых плеч и без упражнений на ноги. Грудь → бицепс → гиперэкстензия → кор.",ids:["machine","cross","hammer","hyper","pallof","crunch","knees"]}
 };
 
+const SUPABASE_URL="https://ugtyisycsustoynkhehh.supabase.co";
+const SUPABASE_KEY="sb_publishable_LWBBfZkVHRAMXcy45pnq6g_ZlqSIqMc";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let cloudUser=null, syncTimer=null, applyingCloud=false;
+
 let S;
-try{S=JSON.parse(localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
+try{S=JSON.parse(localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
 if(!S){
   // migrate the compatible history from previous versions if present
   try{S=JSON.parse(localStorage.getItem("trainingTrackerV21")||localStorage.getItem("autoTraining4")||"null")}catch(e){}
 }
 if(!S)S={block:1,day:"A",logs:{},done:{},dates:{}};
+S._modifiedAt=S._modifiedAt||Date.now();
 S.block=S.block||1; S.day=S.day||"A"; S.logs=S.logs||{}; S.done=S.done||{}; S.dates=S.dates||{};
 
-function save(){localStorage.setItem("trainingTrackerV30",JSON.stringify(S))}
+function setSyncStatus(t){const el=document.querySelector("#syncStatus");if(el)el.textContent=t}
+function save(){
+  if(!applyingCloud)S._modifiedAt=Date.now();
+  localStorage.setItem("trainingTrackerV31",JSON.stringify(S));
+  if(cloudUser&&!applyingCloud){
+    setSyncStatus("Сохраняю…");
+    clearTimeout(syncTimer);
+    syncTimer=setTimeout(pushCloud,650);
+  }
+}
+async function pushCloud(){
+  if(!cloudUser)return;
+  const payload=JSON.parse(JSON.stringify(S));
+  const {error}=await db.from("training_state").upsert(
+    {user_id:cloudUser.id,data:payload,updated_at:new Date().toISOString()},
+    {onConflict:"user_id"}
+  );
+  if(error){setSyncStatus("⚠ Не синхронизировано");console.error(error);return}
+  setSyncStatus("✓ Синхронизировано · "+new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}));
+}
+async function pullOrSeedCloud(){
+  if(!cloudUser)return;
+  setSyncStatus("Синхронизация…");
+  const {data,error}=await db.from("training_state").select("data,updated_at").eq("user_id",cloudUser.id).maybeSingle();
+  if(error){setSyncStatus("⚠ Ошибка синхронизации");console.error(error);return}
+  if(!data){
+    await pushCloud(); return;
+  }
+  const remote=data.data||{}, remoteTime=Number(remote._modifiedAt||0), localTime=Number(S._modifiedAt||0);
+  if(remoteTime>localTime){
+    applyingCloud=true;
+    S=remote;
+    S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};
+    localStorage.setItem("trainingTrackerV31",JSON.stringify(S));
+    applyingCloud=false;
+    render();
+  } else if(localTime>remoteTime){
+    await pushCloud(); return;
+  }
+  setSyncStatus("✓ Синхронизировано · "+new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}));
+}
+function showAuth(session){
+  cloudUser=session&&session.user?session.user:null;
+  document.querySelector("#signedOut").style.display=cloudUser?"none":"block";
+  document.querySelector("#signedIn").style.display=cloudUser?"block":"none";
+  document.querySelector("#syncUser").textContent=cloudUser?cloudUser.email:"";
+  if(cloudUser)pullOrSeedCloud();
+}
+async function login(){
+  const email=document.querySelector("#loginEmail").value.trim();
+  const password=document.querySelector("#loginPassword").value;
+  if(!email||!password){alert("Введи email и пароль.");return}
+  document.querySelector("#loginBtn").disabled=true;
+  const {error}=await db.auth.signInWithPassword({email,password});
+  document.querySelector("#loginBtn").disabled=false;
+  if(error)alert("Не получилось войти: "+error.message);
+}
+async function logout(){await db.auth.signOut()}
+
 function rnd(v,st){return Math.max(st,Math.round(v/st)*st)}
 function plan(e,b){
  let s=e.s,lo=e.r[0],hi=e.r[1],rir=e.rir;
@@ -215,5 +298,9 @@ document.querySelector("#export").onclick=()=>{
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v3.json";a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
+document.querySelector("#loginBtn").onclick=login;
+document.querySelector("#logoutBtn").onclick=logout;
+db.auth.onAuthStateChange((_event,session)=>showAuth(session));
+db.auth.getSession().then(({data})=>showAuth(data.session));
 render();
 </script></body></html>
