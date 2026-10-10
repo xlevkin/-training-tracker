@@ -30,7 +30,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.2 · cloud sync</div></div>
+<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.4 · cloud sync</div></div>
 <div id="cloudPanel" class="info" style="margin:14px 0">
   <div id="signedOut">
     <b>Облачная синхронизация</b>
@@ -51,14 +51,14 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <div id="blocks" class="blocks"></div>
 <div class="layout">
 <aside><div id="days" class="days"></div><div id="phaseInfo" class="info"></div>
-<div class="info small"><b>Ввод:</b> фактические <b>вес и повторы каждого рабочего подхода</b> + RIR последнего рабочего подхода. Вес можно менять вручную в любом подходе. Разминочные подходы сюда не входят.</div></aside>
+<div class="info small"><b>Ввод:</b> фактические <b>вес и повторы каждого рабочего подхода</b> + RIR последнего рабочего подхода. Вес можно менять вручную в любом подходе. <b>Частичная тренировка:</b> заполни только сделанные упражнения и заверши день — пустые считаются пропущенными и не влияют на прогрессию. Разминочные подходы сюда не входят.</div></aside>
 <main class="card"><div id="phase" class="small muted"></div><h2 id="title"></h2><div id="note" class="muted"></div><div id="list"></div>
 <div class="actions"><button id="done" class="btn">Отметить выполненной</button><button id="copy" class="btn">Скопировать тренировку для ChatGPT</button><button id="copyAll" class="btn">Скопировать весь прогресс</button><button id="export" class="btn">Экспорт JSON</button></div>
 <div class="info small"><b>Логика:</b> базовые движения — оценочный 1ПМ по фактическому весу каждого подхода + RIR; аксессуары — double progression. Шаг веса хранится отдельно для каждого упражнения и синхронизируется. В разгрузке снижаются вес и объём. Для ног прогрессия намеренно консервативная.</div>
 </main></div></div>
 
 <script>
-const VERSION="3.2";
+const VERSION="3.4";
 const phaseNames=["Калибровка","Рост","Рост","Разгрузка","Рост","Сила","Сила","Контроль"];
 const phaseDesc=[
 "Первая ротация A–D: вводишь реальные результаты, они становятся базой.",
@@ -93,6 +93,8 @@ onearm:{n:"Тяга верхнего блока одной рукой",k:"hyper"
 goblet:{n:"Goblet squat",k:"leg",g:"legs",base:null,step:2,s:2,r:[10,12],rir:2,rest:"2–3 мин"},
 rear:{n:"Reverse pec-deck — задняя дельта",k:"hyper",g:"shoulders",base:30,step:2.5,s:3,r:[10,15],rir:1,rest:"1,5–2 мин"},
 tri2:{n:"Трицепс из-за головы",k:"hyper",g:"arms",base:6,step:1,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
+calfstand:{n:"Подъёмы на носки стоя",k:"hyper",g:"legs",base:null,step:5,s:3,r:[10,15],rir:1,rest:"1,5–2 мин",note:"Без рывков, полная комфортная амплитуда; рабочий вес и шаг выставь под тренажёр."},
+chestrow:{n:"Тяга с опорой грудью",k:"hyper",g:"back",base:null,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин",note:"Нейтральный или умеренно широкий хват; без боли при сведении лопаток. Если нет тренажёра — гантели на наклонной скамье."},
 hammer:{n:"Молотки",k:"hyper",g:"arms",base:9,step:2,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
 
 machine:{n:"Жим на грудь в тренажёре",k:"hyper",g:"chest",base:55,step:5,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
@@ -106,8 +108,8 @@ knees:{n:"Подъём коленей в упоре",k:"body",g:"core",base:0,st
 const days={
 A:{n:"A · становая + грудь",note:"Становая — главный силовой приоритет. Прямые плечи сегодня: махи.",ids:["dead","inc","lat","ext","latraise","tri","foreflex"]},
 B:{n:"B · жим + присед",note:"Жим лёжа первым. Прямые плечи сегодня: жим гантелей сидя.",ids:["bench","squat","row","curlleg","dbshoulder","curl","foreext"]},
-C:{n:"C · верх + умеренные ноги",note:"Прямые плечи сегодня: задняя дельта в reverse pec-deck. Низ остаётся умеренным по объёму.",ids:["inc","legpress","onearm","goblet","rear","tri2","hammer"]},
-D:{n:"D · грудь + бицепс + кор",note:"Без прямых плеч и без упражнений на ноги. Грудь → бицепс → гиперэкстензия → кор.",ids:["machine","cross","hammer","hyper","pallof","crunch","knees"]}
+C:{n:"C · верх + умеренные ноги",note:"Прямые плечи сегодня: задняя дельта в reverse pec-deck. Низ остаётся умеренным по объёму.",ids:["inc","legpress","onearm","goblet","rear","tri2","calfstand"]},
+D:{n:"D · грудь + спина + кор",note:"Без прямых плеч и без упражнений на ноги. Тяга с опорой грудью и гиперэкстензия дополняют работу спины в A–C.",ids:["machine","cross","chestrow","hammer","hyper","crunch","knees"]}
 };
 
 const SUPABASE_URL="https://ugtyisycsustoynkhehh.supabase.co";
@@ -116,7 +118,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let cloudUser=null, syncTimer=null, applyingCloud=false;
 
 let S;
-try{S=JSON.parse(localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
+try{S=JSON.parse(localStorage.getItem("trainingTrackerV34")||localStorage.getItem("trainingTrackerV33")||localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
 if(!S){
   // migrate the compatible history from previous versions if present
   try{S=JSON.parse(localStorage.getItem("trainingTrackerV21")||localStorage.getItem("autoTraining4")||"null")}catch(e){}
@@ -125,12 +127,13 @@ if(!S)S={block:1,day:"A",logs:{},done:{},dates:{}};
 S._modifiedAt=S._modifiedAt||Date.now();
 S.block=S.block||1; S.day=S.day||"A"; S.logs=S.logs||{}; S.done=S.done||{}; S.dates=S.dates||{};
 S.steps=S.steps||{};
+S.completion=S.completion||{};
 
 
 function setSyncStatus(t){const el=document.querySelector("#syncStatus");if(el)el.textContent=t}
 function save(){
   if(!applyingCloud)S._modifiedAt=Date.now();
-  localStorage.setItem("trainingTrackerV32",JSON.stringify(S));
+  localStorage.setItem("trainingTrackerV34",JSON.stringify(S));
   if(cloudUser&&!applyingCloud){
     setSyncStatus("Сохраняю…");
     clearTimeout(syncTimer);
@@ -159,8 +162,8 @@ async function pullOrSeedCloud(){
   if(remoteTime>localTime){
     applyingCloud=true;
     S=remote;
-    S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};S.steps=S.steps||{};
-    localStorage.setItem("trainingTrackerV32",JSON.stringify(S));
+    S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};S.steps=S.steps||{};S.completion=S.completion||{};
+    localStorage.setItem("trainingTrackerV34",JSON.stringify(S));
     applyingCloud=false;
     render();
   } else if(localTime>remoteTime){
@@ -264,6 +267,19 @@ function rec(id,b){
  if(under && rir===0)return rnd(Math.max(0,minW-st),st);
  return rnd(maxW,st);
 }
+function completedExercises(b,d){
+ const out=[];
+ for(const id of days[d].ids){
+  const p=plan(E[id],b),l=S.logs[b+d+"-"+id];
+  if(l){migrateLog(id,l,p);if(setPairs(l,p).length)out.push(id)}
+ }
+ return out;
+}
+function completionLabel(b,d){
+ const n=completedExercises(b,d).length,total=days[d].ids.length;
+ if(!n)return "Не начата";
+ return n<total?`Частично · ${n}/${total}`:`Выполнена · ${n}/${total}`;
+}
 function fmt(v,e){
  if(v==null)return "ввести в калибровке";
  if(e.k==="body" && Number(v)===0)return "собственный вес";
@@ -275,7 +291,7 @@ function copyText(all=false){
    if(!all&&d!==S.day)continue;
    const key=b+d;
    if(all&&!S.done[key]&&!days[d].ids.some(id=>S.logs[key+"-"+id]))continue;
-   const lines=[`Трекер v${VERSION} · Блок ${b} ${phaseNames[b-1]} · ${d}${S.dates[key]?" · "+S.dates[key]:""}`];
+   const lines=[`Трекер v${VERSION} · Блок ${b} ${phaseNames[b-1]} · ${d} · ${completionLabel(b,d)}${S.dates[key]?" · "+S.dates[key]:""}`];
    let any=false;
    for(const id of days[d].ids){
      const e=E[id],p=plan(e,b),l=S.logs[key+"-"+id]; if(!l)continue;
@@ -333,23 +349,34 @@ function render(){
      else if(inp.dataset.set!==undefined){log.sets=log.sets||[];log.sets[Number(inp.dataset.set)]=inp.value}
      else if(inp.dataset.step!==undefined){const v=Number(inp.value);if(Number.isFinite(v)&&v>0)S.steps[id]=v}
      else log[inp.dataset.f]=inp.value;
+     const k2=S.block+S.day;
+     if(S.done[k2]){
+      const n2=completedExercises(S.block,S.day).length,total2=days[S.day].ids.length;
+      S.completion[k2]={count:n2,total:total2,status:n2<total2?"partial":"full"};
+     }
      save();
    });
    L.appendChild(row);
  });
  const done=document.querySelector("#done"),dk=S.block+S.day;
- done.className="btn "+(S.done[dk]?"ok":"");done.textContent=S.done[dk]?"✓ Выполнено":"Отметить выполненной";
+ done.className="btn "+(S.done[dk]?"ok":"");
+ done.textContent=S.done[dk]?("✓ "+completionLabel(S.block,S.day)):"Завершить тренировку";
 }
 document.querySelector("#done").onclick=()=>{
- const k=S.block+S.day;S.done[k]=!S.done[k];
- if(S.done[k]&&!S.dates[k])S.dates[k]=new Date().toLocaleDateString("ru-RU");
+ const k=S.block+S.day,n=completedExercises(S.block,S.day).length,total=days[S.day].ids.length;
+ if(!n){alert("Сначала запиши хотя бы одно выполненное упражнение.");return}
+ S.done[k]=!S.done[k];
+ if(S.done[k]){
+  if(!S.dates[k])S.dates[k]=new Date().toLocaleDateString("ru-RU");
+  S.completion[k]={count:n,total,status:n<total?"partial":"full"};
+ }else delete S.completion[k];
  save();render();
 };
 document.querySelector("#copy").onclick=()=>clip(copyText(false));
 document.querySelector("#copyAll").onclick=()=>clip(copyText(true));
 document.querySelector("#export").onclick=()=>{
  const blob=new Blob([JSON.stringify({version:VERSION,...S},null,2)],{type:"application/json"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v32.json";a.click();
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v34.json";a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
 document.querySelector("#loginBtn").onclick=login;
