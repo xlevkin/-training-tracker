@@ -30,7 +30,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.4 · cloud sync</div></div>
+<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.5 · cloud sync</div></div>
 <div id="cloudPanel" class="info" style="margin:14px 0">
   <div id="signedOut">
     <b>Облачная синхронизация</b>
@@ -58,7 +58,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 </main></div></div>
 
 <script>
-const VERSION="3.4";
+const VERSION="3.5";
 const phaseNames=["Калибровка","Рост","Рост","Разгрузка","Рост","Сила","Сила","Контроль"];
 const phaseDesc=[
 "Первая ротация A–D: вводишь реальные результаты, они становятся базой.",
@@ -108,7 +108,7 @@ knees:{n:"Подъём коленей в упоре",k:"body",g:"core",base:0,st
 const days={
 A:{n:"A · становая + грудь",note:"Становая — главный силовой приоритет. Прямые плечи сегодня: махи.",ids:["dead","inc","lat","ext","latraise","tri","foreflex"]},
 B:{n:"B · жим + присед",note:"Жим лёжа первым. Прямые плечи сегодня: жим гантелей сидя.",ids:["bench","squat","row","curlleg","dbshoulder","curl","foreext"]},
-C:{n:"C · верх + умеренные ноги",note:"Прямые плечи сегодня: задняя дельта в reverse pec-deck. Низ остаётся умеренным по объёму.",ids:["inc","legpress","onearm","goblet","rear","tri2","calfstand"]},
+C:{n:"C · верх + умеренные ноги",note:"Жим ногами — контролируемая гипертрофийная работа (RIR 1–2). Икры — отдельный акцент. Без goblet squat со второго блока.",ids:["inc","legpress","onearm","goblet","rear","tri2","calfstand"]},
 D:{n:"D · грудь + спина + кор",note:"Без прямых плеч и без упражнений на ноги. Тяга с опорой грудью и гиперэкстензия дополняют работу спины в A–C.",ids:["machine","cross","chestrow","hammer","hyper","crunch","knees"]}
 };
 
@@ -118,7 +118,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let cloudUser=null, syncTimer=null, applyingCloud=false;
 
 let S;
-try{S=JSON.parse(localStorage.getItem("trainingTrackerV34")||localStorage.getItem("trainingTrackerV33")||localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
+try{S=JSON.parse(localStorage.getItem("trainingTrackerV35")||localStorage.getItem("trainingTrackerV34")||localStorage.getItem("trainingTrackerV33")||localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
 if(!S){
   // migrate the compatible history from previous versions if present
   try{S=JSON.parse(localStorage.getItem("trainingTrackerV21")||localStorage.getItem("autoTraining4")||"null")}catch(e){}
@@ -133,7 +133,7 @@ S.completion=S.completion||{};
 function setSyncStatus(t){const el=document.querySelector("#syncStatus");if(el)el.textContent=t}
 function save(){
   if(!applyingCloud)S._modifiedAt=Date.now();
-  localStorage.setItem("trainingTrackerV34",JSON.stringify(S));
+  localStorage.setItem("trainingTrackerV35",JSON.stringify(S));
   if(cloudUser&&!applyingCloud){
     setSyncStatus("Сохраняю…");
     clearTimeout(syncTimer);
@@ -163,7 +163,7 @@ async function pullOrSeedCloud(){
     applyingCloud=true;
     S=remote;
     S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};S.steps=S.steps||{};S.completion=S.completion||{};
-    localStorage.setItem("trainingTrackerV34",JSON.stringify(S));
+    localStorage.setItem("trainingTrackerV35",JSON.stringify(S));
     applyingCloud=false;
     render();
   } else if(localTime>remoteTime){
@@ -214,13 +214,23 @@ function setPairs(l,p){
   return out;
 }
 function rnd(v,st){return Math.max(st,Math.round(v/st)*st)}
+function dayIds(d,b){
+ // Сохраняем исходную тренировку C в первом уже завершённом блоке.
+ return d==="C"&&b>=2?days.C.ids.filter(id=>id!=="goblet"):days[d].ids;
+}
 function plan(e,b){
  let s=e.s,lo=e.r[0],hi=e.r[1],rir=e.rir;
+ if(b>=2){
+  if(e===E.squat){s=3;lo=5;hi=6;rir=2}
+  if(e===E.legpress){s=3;lo=10;hi=12;rir=2}
+  if(e===E.calfstand){s=4;lo=10;hi=15;rir=2}
+ }
  if(b===4){s=Math.max(2,s-1);rir=Math.max(3,rir)}
  if((b===6||b===7)&&(e.k==="main"||e.k==="legmain")){
    if(e.g==="dead"){lo=3;hi=4}else{lo=4;hi=6} rir=2;
  }
  if(b===8&&(e.k==="main"||e.k==="legmain")){lo=3;hi=5;rir=2}
+ if(b>=2&&e===E.squat){lo=5;hi=6;rir=b===4?3:2}
  return{s,lo,hi,rir};
 }
 function prev(id,b){
@@ -269,14 +279,14 @@ function rec(id,b){
 }
 function completedExercises(b,d){
  const out=[];
- for(const id of days[d].ids){
+ for(const id of dayIds(d,b)){
   const p=plan(E[id],b),l=S.logs[b+d+"-"+id];
   if(l){migrateLog(id,l,p);if(setPairs(l,p).length)out.push(id)}
  }
  return out;
 }
 function completionLabel(b,d){
- const n=completedExercises(b,d).length,total=days[d].ids.length;
+ const n=completedExercises(b,d).length,total=dayIds(d,b).length;
  if(!n)return "Не начата";
  return n<total?`Частично · ${n}/${total}`:`Выполнена · ${n}/${total}`;
 }
@@ -290,10 +300,10 @@ function copyText(all=false){
  for(const b of blocks)for(const d of ["A","B","C","D"]){
    if(!all&&d!==S.day)continue;
    const key=b+d;
-   if(all&&!S.done[key]&&!days[d].ids.some(id=>S.logs[key+"-"+id]))continue;
+   if(all&&!S.done[key]&&!dayIds(d,b).some(id=>S.logs[key+"-"+id]))continue;
    const lines=[`Трекер v${VERSION} · Блок ${b} ${phaseNames[b-1]} · ${d} · ${completionLabel(b,d)}${S.dates[key]?" · "+S.dates[key]:""}`];
    let any=false;
-   for(const id of days[d].ids){
+   for(const id of dayIds(d,b)){
      const e=E[id],p=plan(e,b),l=S.logs[key+"-"+id]; if(!l)continue;
      migrateLog(id,l,p);
      const pairs=setPairs(l,p); if(!pairs.length)continue;
@@ -331,7 +341,7 @@ function render(){
  document.querySelector("#phase").textContent=`Блок ${S.block} · ${phaseNames[S.block-1]}`;
  const d=days[S.day];document.querySelector("#title").textContent=d.n;document.querySelector("#note").textContent=d.note;
  const L=document.querySelector("#list");L.innerHTML="";
- d.ids.forEach(id=>{
+ dayIds(S.day,S.block).forEach(id=>{
    const e=E[id],p=plan(e,S.block),key=S.block+S.day+"-"+id,l=S.logs[key]||{},r=rec(id,S.block),row=document.createElement("div");
    S.logs[key]=l; migrateLog(id,l,p);
    row.className="ex";
@@ -351,7 +361,7 @@ function render(){
      else log[inp.dataset.f]=inp.value;
      const k2=S.block+S.day;
      if(S.done[k2]){
-      const n2=completedExercises(S.block,S.day).length,total2=days[S.day].ids.length;
+      const n2=completedExercises(S.block,S.day).length,total2=dayIds(S.day,S.block).length;
       S.completion[k2]={count:n2,total:total2,status:n2<total2?"partial":"full"};
      }
      save();
@@ -363,7 +373,7 @@ function render(){
  done.textContent=S.done[dk]?("✓ "+completionLabel(S.block,S.day)):"Завершить тренировку";
 }
 document.querySelector("#done").onclick=()=>{
- const k=S.block+S.day,n=completedExercises(S.block,S.day).length,total=days[S.day].ids.length;
+ const k=S.block+S.day,n=completedExercises(S.block,S.day).length,total=dayIds(S.day,S.block).length;
  if(!n){alert("Сначала запиши хотя бы одно выполненное упражнение.");return}
  S.done[k]=!S.done[k];
  if(S.done[k]){
