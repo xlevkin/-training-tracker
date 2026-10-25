@@ -30,7 +30,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">A → B → C → D · одна ротация, не календарная неделя</div><h1>Верх ↑ · грудь ↑ · становая ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.5 · cloud sync</div></div>
+<div class="top"><div><div class="small muted">Ср · Пт · Вс · 3 силовые + бокс Вт/Чт</div><h1>Грудь ↑ · спина ↑ · руки ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.6 · cloud sync</div></div>
 <div id="cloudPanel" class="info" style="margin:14px 0">
   <div id="signedOut">
     <b>Облачная синхронизация</b>
@@ -54,86 +54,60 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <div class="info small"><b>Ввод:</b> фактические <b>вес и повторы каждого рабочего подхода</b> + RIR последнего рабочего подхода. Вес можно менять вручную в любом подходе. <b>Частичная тренировка:</b> заполни только сделанные упражнения и заверши день — пустые считаются пропущенными и не влияют на прогрессию. Разминочные подходы сюда не входят.</div></aside>
 <main class="card"><div id="phase" class="small muted"></div><h2 id="title"></h2><div id="note" class="muted"></div><div id="list"></div>
 <div class="actions"><button id="done" class="btn">Отметить выполненной</button><button id="copy" class="btn">Скопировать тренировку для ChatGPT</button><button id="copyAll" class="btn">Скопировать весь прогресс</button><button id="export" class="btn">Экспорт JSON</button></div>
-<div class="info small"><b>Логика:</b> базовые движения — оценочный 1ПМ по фактическому весу каждого подхода + RIR; аксессуары — double progression. Шаг веса хранится отдельно для каждого упражнения и синхронизируется. В разгрузке снижаются вес и объём. Для ног прогрессия намеренно консервативная.</div>
+<div class="info small"><b>Логика:</b> базовые движения — оценочный 1ПМ по фактическому весу каждого подхода + RIR; аксессуары — double progression. Шаг веса хранится отдельно для каждого упражнения и синхронизируется. Автоматических разгрузок нет; корректируй нагрузку по самочувствию.</div>
 </main></div></div>
 
 <script>
-const VERSION="3.5";
-const phaseNames=["Калибровка","Рост","Рост","Разгрузка","Рост","Сила","Сила","Контроль"];
-const phaseDesc=[
-"Первая ротация A–D: вводишь реальные результаты, они становятся базой.",
-"Добираем диапазоны и постепенно повышаем нагрузку.",
-"Продолжаем прогрессию по фактическим повторам и RIR.",
-"Примерно −10% нагрузки; у упражнений с 3+ рабочими подходами убирается один.",
-"Возвращаемся к прогрессии от последних рабочих результатов.",
-"Основные движения становятся тяжелее; аксессуары остаются в гипертрофийных диапазонах.",
-"Продолжаем силовой блок без необходимости идти в отказ.",
-"Контроль рабочих показателей без обязательного теста настоящего 1ПМ."
-];
+const VERSION="3.6";
+const phaseNames=["Неделя 1","Неделя 2","Неделя 3","Неделя 4","Неделя 5","Неделя 6","Неделя 7","Неделя 8"];
+const phaseDesc=Array.from({length:8},(_,i)=>`Неделя ${i+1}: двойная прогрессия по фактическим подходам. Без автоматической разгрузки; при боли уменьшай нагрузку.`);
 
 const E={
-dead:{n:"Становая тяга",k:"main",g:"dead",base:70,step:2.5,s:3,r:[3,5],rir:2,rest:"3–5 мин"},
-inc:{n:"Жим гантелей на наклонной",k:"hyper",g:"chest",base:18,step:2,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
-lat:{n:"Тяга верхнего блока",k:"hyper",g:"back",base:40,step:2.5,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
-ext:{n:"Разгибание ног",k:"leg",g:"legs",base:37.5,step:2.5,s:2,r:[10,12],rir:1,rest:"1,5–2 мин"},
-latraise:{n:"Махи на плечи в кроссовере",k:"hyper",g:"shoulders",base:12,step:1,s:3,r:[12,15],rir:1,rest:"1,5–2 мин"},
-tri:{n:"Трицепс из-за головы",k:"hyper",g:"arms",base:6,step:1,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
-foreflex:{n:"Предплечья — сгибание кисти",k:"hyper",g:"forearms",base:null,step:1,s:3,r:[12,15],rir:1,rest:"1–2 мин"},
-
-bench:{n:"Жим штанги лёжа",k:"main",g:"chest",base:50,step:2.5,s:3,r:[6,8],rir:2,rest:"3–5 мин"},
-squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:45,step:2.5,s:2,r:[5,8],rir:2,rest:"3–5 мин"},
-row:{n:"Горизонтальная тяга блока",k:"hyper",g:"back",base:40,step:2.5,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
-curlleg:{n:"Сгибание ног",k:"leg",g:"legs",base:25,step:2.5,s:2,r:[10,12],rir:1,rest:"1,5–2 мин"},
-dbshoulder:{n:"Жим гантелей сидя",k:"hyper",g:"shoulders",base:12.5,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин"},
-curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:9,step:2,s:3,r:[8,10],rir:1,rest:"1,5–2 мин"},
-foreext:{n:"Предплечья — разгибание кисти",k:"hyper",g:"forearms",base:null,step:1,s:3,r:[12,15],rir:1,rest:"1–2 мин"},
-
-legpress:{n:"Жим ногами",k:"leg",g:"legs",base:null,step:5,s:2,r:[8,10],rir:2,rest:"2–3 мин"},
-onearm:{n:"Тяга верхнего блока одной рукой",k:"hyper",g:"back",base:15,step:1,s:4,r:[8,10],rir:1,rest:"1,5–2 мин"},
-goblet:{n:"Goblet squat",k:"leg",g:"legs",base:null,step:2,s:2,r:[10,12],rir:2,rest:"2–3 мин"},
-rear:{n:"Reverse pec-deck — задняя дельта",k:"hyper",g:"shoulders",base:30,step:2.5,s:3,r:[10,15],rir:1,rest:"1,5–2 мин"},
-tri2:{n:"Трицепс из-за головы",k:"hyper",g:"arms",base:6,step:1,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
-calfstand:{n:"Подъёмы на носки стоя",k:"hyper",g:"legs",base:null,step:5,s:3,r:[10,15],rir:1,rest:"1,5–2 мин",note:"Без рывков, полная комфортная амплитуда; рабочий вес и шаг выставь под тренажёр."},
-chestrow:{n:"Тяга с опорой грудью",k:"hyper",g:"back",base:null,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин",note:"Нейтральный или умеренно широкий хват; без боли при сведении лопаток. Если нет тренажёра — гантели на наклонной скамье."},
-hammer:{n:"Молотки",k:"hyper",g:"arms",base:9,step:2,s:3,r:[10,12],rir:1,rest:"1,5–2 мин"},
-
-machine:{n:"Жим на грудь в тренажёре",k:"hyper",g:"chest",base:55,step:5,s:3,r:[8,10],rir:1,rest:"2–3 мин"},
-cross:{n:"Кроссовер на грудь",k:"hyper",g:"chest",base:null,step:1,s:3,r:[10,15],rir:1,rest:"1,5–2 мин"},
-hyper:{n:"Гиперэкстензия",k:"body",g:"core",base:0,step:2.5,s:3,r:[10,15],rir:2,rest:"1,5–2 мин",note:"Начни с собственного веса. Дополнительный вес — только когда 3×15 выполняются уверенно и без ухудшения самочувствия."},
-pallof:{n:"Pallof press",k:"hyper",g:"core",base:null,step:1,s:3,r:[10,15],rir:2,rest:"60–90 сек",note:"Повторы на каждую сторону."},
-crunch:{n:"Cable crunch",k:"hyper",g:"core",base:null,step:1,s:3,r:[10,15],rir:1,rest:"60–90 сек"},
-knees:{n:"Подъём коленей в упоре",k:"body",g:"core",base:0,step:1,s:3,r:[8,15],rir:1,rest:"60–90 сек",note:"В упоре на локтях — кисть не нужно нагружать."}
+ bench:{n:"Жим штанги лёжа",k:"main",g:"chest",base:47.5,step:2.5,s:3,r:[6,8],rir:2,rest:"2–3 мин"},
+ lat:{n:"Тяга верхнего блока узким хватом",k:"hyper",g:"back",base:45,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин"},
+ ext:{n:"Разгибание ног",k:"leg",g:"legs",base:40,step:2.5,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
+ curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:10,step:2,s:3,r:[8,12],rir:2,rest:"1–2 мин"},
+ crunch:{n:"Пресс — скручивания на блоке",k:"hyper",g:"core",base:11,step:1,s:3,r:[10,15],rir:2,rest:"1–2 мин"},
+ squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:47.5,step:2.5,s:3,r:[5,6],rir:3,rest:"2–3 мин",note:"47,5 кг — последний записанный результат, НЕ предписание. Пока болит поясница, уменьши вес/амплитуду или замени жимом ногами. Без боли."},
+ inc:{n:"Жим гантелей на наклонной 30°",k:"hyper",g:"chest",base:20,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин",note:"Вес указан на одну гантель."},
+ row:{n:"Горизонтальная тяга блока",k:"hyper",g:"back",base:45,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин"},
+ tri:{n:"Трицепс из-за головы",k:"hyper",g:"arms",base:6,step:1,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
+ hyper:{n:"Гиперэкстензия",k:"body",g:"core",base:0,step:2.5,s:3,r:[10,15],rir:3,rest:"1–2 мин",note:"Только если не усиливает боль в пояснице; пока без дополнительного веса."},
+ machine:{n:"Жим на грудь в тренажёре",k:"hyper",g:"chest",base:60,step:5,s:3,r:[8,12],rir:2,rest:"2–3 мин"},
+ curlleg:{n:"Сгибание ног",k:"leg",g:"legs",base:30,step:5,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
+ chestrow:{n:"Тяга Т-грифа с опорой грудью",k:"hyper",g:"back",base:null,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин",note:"Для нового Т-грифа вес неизвестен; 40 кг — только история ДРУГОГО упражнения: тяги с опорой грудью."},
+ latraise:{n:"Махи на среднюю дельту в кроссовере",k:"hyper",g:"shoulders",base:8,step:1,s:3,r:[12,15],rir:2,rest:"1–2 мин",note:"Последняя запись махов: 6/8/8 кг × 10/8/8; 8 кг — ориентир, а не обязательный старт."},
+ calfstand:{n:"Подъёмы на икры",k:"hyper",g:"legs",base:null,step:5,s:3,r:[10,15],rir:2,rest:"1–2 мин"},
+ hammer:{n:"Молотковые сгибания",k:"hyper",g:"arms",base:null,step:2,s:3,r:[10,12],rir:2,rest:"1–2 мин",note:"Упражнение hammer с 25 кг в истории не подтверждено как молотковые сгибания; начни с фактического веса."}
 };
-
 const days={
-A:{n:"A · становая + грудь",note:"Становая — главный силовой приоритет. Прямые плечи сегодня: махи.",ids:["dead","inc","lat","ext","latraise","tri","foreflex"]},
-B:{n:"B · жим + присед",note:"Жим лёжа первым. Прямые плечи сегодня: жим гантелей сидя.",ids:["bench","squat","row","curlleg","dbshoulder","curl","foreext"]},
-C:{n:"C · верх + умеренные ноги",note:"Жим ногами — контролируемая гипертрофийная работа (RIR 1–2). Икры — отдельный акцент. Без goblet squat со второго блока.",ids:["inc","legpress","onearm","goblet","rear","tri2","calfstand"]},
-D:{n:"D · грудь + спина + кор",note:"Без прямых плеч и без упражнений на ноги. Тяга с опорой грудью и гиперэкстензия дополняют работу спины в A–C.",ids:["machine","cross","chestrow","hammer","hyper","crunch","knees"]}
+ W:{n:"Среда · грудь + спина + бицепс",note:"Между двумя боксами: без прямых плеч и трицепса. Жим не до отказа.",ids:["bench","lat","ext","curl","crunch"]},
+ F:{n:"Пятница · присед + грудь + трицепс",note:"Тяжёлый присед только без усиления боли в пояснице. Суббота — отдых.",ids:["squat","inc","row","tri","hyper"]},
+ U:{n:"Воскресенье · задняя поверхность + плечи",note:"После тренировки понедельник — полный отдых. Т-гриф только с опорой грудью.",ids:["machine","curlleg","chestrow","latraise","calfstand","hammer"]}
 };
-
+const LEGACY_DAY_IDS={W:{bench:"B",lat:"A",ext:"A",curl:"B",crunch:"D"},F:{squat:"B",inc:"A",row:"B",tri:"A",hyper:"D"},U:{machine:"D",curlleg:"B",chestrow:"D",latraise:"A",calfstand:"C",hammer:"D"}};
 const SUPABASE_URL="https://ugtyisycsustoynkhehh.supabase.co";
 const SUPABASE_KEY="sb_publishable_LWBBfZkVHRAMXcy45pnq6g_ZlqSIqMc";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let cloudUser=null, syncTimer=null, applyingCloud=false;
 
 let S;
-try{S=JSON.parse(localStorage.getItem("trainingTrackerV35")||localStorage.getItem("trainingTrackerV34")||localStorage.getItem("trainingTrackerV33")||localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
+try{S=JSON.parse(localStorage.getItem("trainingTrackerV36")||localStorage.getItem("trainingTrackerV35")||localStorage.getItem("trainingTrackerV34")||localStorage.getItem("trainingTrackerV33")||localStorage.getItem("trainingTrackerV32")||localStorage.getItem("trainingTrackerV31")||localStorage.getItem("trainingTrackerV30")||"null")}catch(e){}
 if(!S){
   // migrate the compatible history from previous versions if present
   try{S=JSON.parse(localStorage.getItem("trainingTrackerV21")||localStorage.getItem("autoTraining4")||"null")}catch(e){}
 }
 if(!S)S={block:1,day:"A",logs:{},done:{},dates:{}};
 S._modifiedAt=S._modifiedAt||Date.now();
-S.block=S.block||1; S.day=S.day||"A"; S.logs=S.logs||{}; S.done=S.done||{}; S.dates=S.dates||{};
+S.block=S.block||1; S.day=["W","F","U"].includes(S.day)?S.day:"W"; S.logs=S.logs||{}; S.done=S.done||{}; S.dates=S.dates||{};
 S.steps=S.steps||{};
 S.completion=S.completion||{};
-
+if(S._programVersion!=="3.6"){S.block=1;S.day="W";S._programVersion="3.6";}
 
 function setSyncStatus(t){const el=document.querySelector("#syncStatus");if(el)el.textContent=t}
 function save(){
   if(!applyingCloud)S._modifiedAt=Date.now();
-  localStorage.setItem("trainingTrackerV35",JSON.stringify(S));
+  localStorage.setItem("trainingTrackerV36",JSON.stringify(S));
   if(cloudUser&&!applyingCloud){
     setSyncStatus("Сохраняю…");
     clearTimeout(syncTimer);
@@ -162,10 +136,13 @@ async function pullOrSeedCloud(){
   if(remoteTime>localTime){
     applyingCloud=true;
     S=remote;
+    if(S._programVersion!=="3.6"){S.block=1;S._programVersion="3.6";}
+    S.day=["W","F","U"].includes(S.day)?S.day:"W";
     S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};S.steps=S.steps||{};S.completion=S.completion||{};
-    localStorage.setItem("trainingTrackerV35",JSON.stringify(S));
+    localStorage.setItem("trainingTrackerV36",JSON.stringify(S));
     applyingCloud=false;
     render();
+    if(remote._programVersion!=="3.6"){save();}
   } else if(localTime>remoteTime){
     await pushCloud(); return;
   }
@@ -214,68 +191,34 @@ function setPairs(l,p){
   return out;
 }
 function rnd(v,st){return Math.max(st,Math.round(v/st)*st)}
-function dayIds(d,b){
- // Сохраняем исходную тренировку C в первом уже завершённом блоке.
- return d==="C"&&b>=2?days.C.ids.filter(id=>id!=="goblet"):days[d].ids;
-}
-function plan(e,b){
- let s=e.s,lo=e.r[0],hi=e.r[1],rir=e.rir;
- if(b>=2){
-  if(e===E.squat){s=3;lo=5;hi=6;rir=2}
-  if(e===E.legpress){s=3;lo=10;hi=12;rir=2}
-  if(e===E.calfstand){s=4;lo=10;hi=15;rir=2}
- }
- if(b===4){s=Math.max(2,s-1);rir=Math.max(3,rir)}
- if((b===6||b===7)&&(e.k==="main"||e.k==="legmain")){
-   if(e.g==="dead"){lo=3;hi=4}else{lo=4;hi=6} rir=2;
- }
- if(b===8&&(e.k==="main"||e.k==="legmain")){lo=3;hi=5;rir=2}
- if(b>=2&&e===E.squat){lo=5;hi=6;rir=b===4?3:2}
- return{s,lo,hi,rir};
-}
+function dayIds(d,b){return days[d].ids}
+function plan(e,b){return{s:e.s,lo:e.r[0],hi:e.r[1],rir:e.rir}}
 function prev(id,b){
- for(let bb=b;bb>=1;bb--)for(const d of ["D","C","B","A"]){
-   const key=bb+d+"-"+id, l=S.logs[key], p=plan(E[id],bb);
-   if(l){
-     migrateLog(id,l,p);
-     if(setPairs(l,p).length)return l;
-   }
+ for(let bb=b;bb>=1;bb--)for(const d of ["U","F","W"]){
+   const l=S.logs[bb+d+"-"+id],p=plan(E[id],bb);
+   if(l&&setPairs(l,p).length)return l;
  }
  return null;
 }
+function legacyPrev(id){
+ let last=null;
+ const dmap={bench:["B"],lat:["A"],ext:["A"],curl:["B"],crunch:["D"],squat:["B"],inc:["A","C"],row:["B"],tri:["A"],hyper:["D"],machine:["D"],curlleg:["B"],chestrow:["D"],latraise:["A"],calfstand:["C"],hammer:["D"]};
+ for(let b=1;b<=8;b++)for(const d of (dmap[id]||[])){
+  const l=S.logs[b+d+"-"+id];if(l&&setPairs(l,plan(E[id],b)).length)last=l;
+ }
+ return last;
+}
 function rec(id,b){
  const e=E[id],p=plan(e,b),st=stepFor(id);
- if(b===1)return e.base;
- const l=prev(id,b-1); if(!l)return e.base;
- const pairs=setPairs(l,plan(e,Math.max(1,b-1))), rir=Number(l.rir);
+ const l=prev(id,b-1)||(id==="hammer"||id==="chestrow"?null:legacyPrev(id));
+ if(!l)return e.base;
+ const pairs=setPairs(l,p), rir=l.rir===""||l.rir==null?2:Number(l.rir);
  if(!pairs.length)return e.base;
- if(e.k==="body")return pairs[pairs.length-1].w;
- const lastW=pairs[pairs.length-1].w;
- if(b===4)return rnd(lastW*.90,st);
-
- if(e.k==="main"||e.k==="legmain"){
-   // Estimate strength from the best completed set, allowing different weights per set.
-   const safeRir=Number.isFinite(rir)?rir:2;
-   const e1=Math.max(...pairs.map(x=>x.w*(1+(x.r+safeRir)/30)));
-   const mid=(p.lo+p.hi)/2;
-   let n=rnd(e1/(1+(mid+p.rir)/30),st);
-   const minReps=Math.min(...pairs.map(x=>x.r));
-   if(minReps<p.lo-1||safeRir===0)n=Math.min(n,lastW);
-   const maxJump=e.g==="legs"?st:st*2;
-   n=Math.min(n,lastW+maxJump);
-   return n;
- }
-
- // Accessories: progress only when every prescribed set is at the top of the range.
- // If set weights differ, the recommendation starts from the heaviest successfully used weight.
- const completed=pairs.slice(0,p.s);
- const allTop=completed.length>=p.s && completed.every(x=>x.r>=p.hi);
- const under=completed.some(x=>x.r<p.lo);
- const maxW=Math.max(...completed.map(x=>x.w));
- const minW=Math.min(...completed.map(x=>x.w));
- if(allTop && rir>=1)return rnd(maxW+st,st);
- if(under && rir===0)return rnd(Math.max(0,minW-st),st);
- return rnd(maxW,st);
+ if(e.k==="body")return 0;
+ const maxW=Math.max(...pairs.map(x=>x.w));
+ const allTop=pairs.length>=p.s&&pairs.slice(0,p.s).every(x=>x.r>=p.hi);
+ if(allTop&&rir>=1)return rnd(maxW+st,st);
+ return maxW;
 }
 function completedExercises(b,d){
  const out=[];
@@ -297,7 +240,7 @@ function fmt(v,e){
 }
 function copyText(all=false){
  const chunks=[],blocks=all?[1,2,3,4,5,6,7,8]:[S.block];
- for(const b of blocks)for(const d of ["A","B","C","D"]){
+ for(const b of blocks)for(const d of ["W","F","U"]){
    if(!all&&d!==S.day)continue;
    const key=b+d;
    if(all&&!S.done[key]&&!dayIds(d,b).some(id=>S.logs[key+"-"+id]))continue;
@@ -334,7 +277,7 @@ function render(){
  const D=document.querySelector("#days");D.innerHTML="";
  for(const [k,d] of Object.entries(days)){
    const b=document.createElement("button");b.className="day "+(S.day===k?"active":"");
-   b.innerHTML=`<span class="small">ТРЕНИРОВКА ${k}</span><b>${d.n.split(" · ")[1]}${S.done[S.block+k]?" ✓":""}</b>`;
+   b.innerHTML=`<span class="small">${k==="W"?"СРЕДА":k==="F"?"ПЯТНИЦА":"ВОСКРЕСЕНЬЕ"}</span><b>${d.n.split(" · ")[1]}${S.done[S.block+k]?" ✓":""}</b>`;
    b.onclick=()=>{S.day=k;save();render()};D.appendChild(b);
  }
  document.querySelector("#phaseInfo").innerHTML=`<b>${phaseNames[S.block-1]}</b><br><span class="small">${phaseDesc[S.block-1]}</span>`;
@@ -386,7 +329,7 @@ document.querySelector("#copy").onclick=()=>clip(copyText(false));
 document.querySelector("#copyAll").onclick=()=>clip(copyText(true));
 document.querySelector("#export").onclick=()=>{
  const blob=new Blob([JSON.stringify({version:VERSION,...S},null,2)],{type:"application/json"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v34.json";a.click();
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v36.json";a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
 document.querySelector("#loginBtn").onclick=login;
