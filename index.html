@@ -30,7 +30,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">Ср · Пт · Вс · 3 силовые + бокс Вт/Чт</div><h1>Грудь ↑ · спина ↑ · руки ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">алгоритм v3.6 · cloud sync</div></div>
+<div class="top"><div><div class="small muted">Ср · Пт · Вс · 3 силовые + бокс Вт/Чт</div><h1>Грудь ↑ · спина ↑ · руки ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">программа 11.11 · алгоритм v3.6 · cloud sync</div></div>
 <div id="cloudPanel" class="info" style="margin:14px 0">
   <div id="signedOut">
     <b>Облачная синхронизация</b>
@@ -58,17 +58,18 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 </main></div></div>
 
 <script>
-const VERSION="3.6";
+const VERSION="3.6 · программа 11.11";
 const phaseNames=["Неделя 1","Неделя 2","Неделя 3","Неделя 4","Неделя 5","Неделя 6","Неделя 7","Неделя 8"];
 const phaseDesc=Array.from({length:8},(_,i)=>`Неделя ${i+1}: двойная прогрессия по фактическим подходам. Без автоматической разгрузки; при боли уменьшай нагрузку.`);
 
 const E={
  bench:{n:"Жим штанги лёжа",k:"main",g:"chest",base:47.5,step:2.5,s:3,r:[6,8],rir:2,rest:"2–3 мин"},
  lat:{n:"Тяга верхнего блока узким хватом",k:"hyper",g:"back",base:45,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин"},
- ext:{n:"Разгибание ног",k:"leg",g:"legs",base:40,step:2.5,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
+ ext:{n:"Разгибание ног",k:"leg",g:"legs",base:40,step:2.5,s:2,r:[10,15],rir:3,rest:"1–2 мин",note:"Перенесено со среды на воскресенье, чтобы не забивать ноги перед боксом в четверг. Начни с 2 подходов, RIR 3."},
+ crosschest:{n:"Кроссовер на грудь — блоки на высоте груди",k:"hyper",g:"chest",base:null,step:1,s:3,r:[10,15],rir:2,rest:"1–2 мин",note:"Оба ролика примерно на высоте груди/плеч. Своди рукоятки перед серединой груди почти горизонтально. Без болезненного растяжения плеча. Вес подбери на первой тренировке."},
  curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:10,step:2,s:3,r:[8,12],rir:2,rest:"1–2 мин"},
  crunch:{n:"Пресс — скручивания на блоке",k:"hyper",g:"core",base:11,step:1,s:3,r:[10,15],rir:2,rest:"1–2 мин"},
- squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:47.5,step:2.5,s:3,r:[5,6],rir:3,rest:"2–3 мин",note:"47,5 кг — последний записанный результат, НЕ предписание. Пока болит поясница, уменьши вес/амплитуду или замени жимом ногами. Без боли."},
+ squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:47.5,step:2.5,s:3,r:[5,8],rir:3,rest:"2–3 мин",note:"47,5 кг — последний записанный результат, НЕ предписание. Пока болит поясница, уменьши вес/амплитуду или замени жимом ногами. Без боли."},
  inc:{n:"Жим гантелей на наклонной 30°",k:"hyper",g:"chest",base:20,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин",note:"Вес указан на одну гантель."},
  row:{n:"Горизонтальная тяга блока",k:"hyper",g:"back",base:45,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин"},
  tri:{n:"Трицепс из-за головы",k:"hyper",g:"arms",base:6,step:1,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
@@ -81,9 +82,9 @@ const E={
  hammer:{n:"Молотковые сгибания",k:"hyper",g:"arms",base:null,step:2,s:3,r:[10,12],rir:2,rest:"1–2 мин",note:"Упражнение hammer с 25 кг в истории не подтверждено как молотковые сгибания; начни с фактического веса."}
 };
 const days={
- W:{n:"Среда · грудь + спина + бицепс",note:"Между двумя боксами: без прямых плеч и трицепса. Жим не до отказа.",ids:["bench","lat","ext","curl","crunch"]},
+ W:{n:"Среда · грудь + спина + бицепс",note:"Вместо разгибаний ног — горизонтальный кроссовер на грудь. Ноги отдыхают перед боксом в четверг; жим не до отказа.",ids:["bench","lat","crosschest","curl","crunch"]},
  F:{n:"Пятница · присед + грудь + трицепс",note:"Тяжёлый присед только без усиления боли в пояснице. Суббота — отдых.",ids:["squat","inc","row","tri","hyper"]},
- U:{n:"Воскресенье · задняя поверхность + плечи",note:"После тренировки понедельник — полный отдых. Т-гриф только с опорой грудью.",ids:["machine","curlleg","chestrow","latraise","calfstand","hammer"]}
+ U:{n:"Воскресенье · ноги + плечи + грудь",note:"Сгибания ног 3 подхода, разгибания 2 подхода с RIR 3. Понедельник — отдых; оцени ноги на боксе во вторник. Т-гриф с опорой грудью.",ids:["machine","curlleg","ext","chestrow","latraise","calfstand","hammer"]}
 };
 const LEGACY_DAY_IDS={W:{bench:"B",lat:"A",ext:"A",curl:"B",crunch:"D"},F:{squat:"B",inc:"A",row:"B",tri:"A",hyper:"D"},U:{machine:"D",curlleg:"B",chestrow:"D",latraise:"A",calfstand:"C",hammer:"D"}};
 const SUPABASE_URL="https://ugtyisycsustoynkhehh.supabase.co";
