@@ -30,7 +30,7 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body><div class="wrap">
-<div class="top"><div><div class="small muted">Ср · Пт · Вс · 3 силовые + бокс Вт/Чт</div><h1>Грудь ↑ · спина ↑ · руки ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">программа 11.11 · алгоритм v3.6 · cloud sync</div></div>
+<div class="top"><div><div class="small muted">Ср · Пт · Вс · 3 силовые + бокс Вт/Чт</div><h1>Грудь ↑ · спина ↑ · руки ↑ · ноги ↔</h1><div class="muted">Автопрогрессия по фактическим весам, повторам и RIR.</div></div><div class="small muted">программа 11.11 · алгоритм v3.7 · cloud sync</div></div>
 <div id="cloudPanel" class="info" style="margin:14px 0">
   <div id="signedOut">
     <b>Облачная синхронизация</b>
@@ -58,15 +58,15 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 </main></div></div>
 
 <script>
-const VERSION="3.6 · программа 11.11";
+const VERSION="3.8 · программа 14.11";
 const phaseNames=["Неделя 1","Неделя 2","Неделя 3","Неделя 4","Неделя 5","Неделя 6","Неделя 7","Неделя 8"];
 const phaseDesc=Array.from({length:8},(_,i)=>`Неделя ${i+1}: двойная прогрессия по фактическим подходам. Без автоматической разгрузки; при боли уменьшай нагрузку.`);
 
 const E={
  bench:{n:"Жим штанги лёжа",k:"main",g:"chest",base:47.5,step:2.5,s:3,r:[6,8],rir:2,rest:"2–3 мин"},
  lat:{n:"Тяга верхнего блока узким хватом",k:"hyper",g:"back",base:45,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин"},
- ext:{n:"Разгибание ног",k:"leg",g:"legs",base:40,step:2.5,s:2,r:[10,15],rir:3,rest:"1–2 мин",note:"Перенесено со среды на воскресенье, чтобы не забивать ноги перед боксом в четверг. Начни с 2 подходов, RIR 3."},
- crosschest:{n:"Кроссовер на грудь — блоки на высоте груди",k:"hyper",g:"chest",base:null,step:1,s:3,r:[10,15],rir:2,rest:"1–2 мин",note:"Оба ролика примерно на высоте груди/плеч. Своди рукоятки перед серединой груди почти горизонтально. Без болезненного растяжения плеча. Вес подбери на первой тренировке."},
+ ext:{n:"Разгибание ног",k:"leg",g:"legs",base:40,step:2.5,s:3,r:[10,15],rir:3,rest:"1–2 мин",note:"Воскресенье: 3 рабочих подхода. Следи, чтобы квадрицепсы восстановились к боксу во вторник."},
+ crosschest:{n:"Пекдек — сведение рук на грудь",k:"hyper",g:"chest",base:30,step:2.5,s:3,r:[10,15],rir:2,rest:"1–2 мин",note:"Сведение рук в тренажёре на грудь, не обратный пекдек на заднюю дельту. Последняя тренировка: 30 кг × 10/10/10."},
  curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:10,step:2,s:3,r:[8,12],rir:2,rest:"1–2 мин"},
  crunch:{n:"Пресс — скручивания на блоке",k:"hyper",g:"core",base:11,step:1,s:3,r:[10,15],rir:2,rest:"1–2 мин"},
  squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:47.5,step:2.5,s:3,r:[5,8],rir:3,rest:"2–3 мин",note:"47,5 кг — последний записанный результат, НЕ предписание. Пока болит поясница, уменьши вес/амплитуду или замени жимом ногами. Без боли."},
@@ -76,15 +76,16 @@ const E={
  hyper:{n:"Гиперэкстензия",k:"body",g:"core",base:0,step:2.5,s:3,r:[10,15],rir:3,rest:"1–2 мин",note:"Только если не усиливает боль в пояснице; пока без дополнительного веса."},
  machine:{n:"Жим на грудь в тренажёре",k:"hyper",g:"chest",base:60,step:5,s:3,r:[8,12],rir:2,rest:"2–3 мин"},
  curlleg:{n:"Сгибание ног",k:"leg",g:"legs",base:30,step:5,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
+ rdl:{n:"Румынская тяга",k:"legmain",g:"legs",base:null,step:2.5,s:3,r:[12,15],rir:4,rest:"2–3 мин",note:"Поясница побаливает: начни с очень лёгкого веса, держи спину нейтрально и не работай через боль. 3 подхода по 12–15, RIR 3–4. Если боль усиливается — прекрати и обсуди с врачом/физиотерапевтом."},
  chestrow:{n:"Тяга Т-грифа с опорой грудью",k:"hyper",g:"back",base:null,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин",note:"Для нового Т-грифа вес неизвестен; 40 кг — только история ДРУГОГО упражнения: тяги с опорой грудью."},
  latraise:{n:"Махи на среднюю дельту в кроссовере",k:"hyper",g:"shoulders",base:8,step:1,s:3,r:[12,15],rir:2,rest:"1–2 мин",note:"Последняя запись махов: 6/8/8 кг × 10/8/8; 8 кг — ориентир, а не обязательный старт."},
  calfstand:{n:"Подъёмы на икры",k:"hyper",g:"legs",base:null,step:5,s:3,r:[10,15],rir:2,rest:"1–2 мин"},
  hammer:{n:"Молотковые сгибания",k:"hyper",g:"arms",base:null,step:2,s:3,r:[10,12],rir:2,rest:"1–2 мин",note:"Упражнение hammer с 25 кг в истории не подтверждено как молотковые сгибания; начни с фактического веса."}
 };
 const days={
- W:{n:"Среда · грудь + спина + бицепс",note:"Вместо разгибаний ног — горизонтальный кроссовер на грудь. Ноги отдыхают перед боксом в четверг; жим не до отказа.",ids:["bench","lat","crosschest","curl","crunch"]},
- F:{n:"Пятница · присед + грудь + трицепс",note:"Тяжёлый присед только без усиления боли в пояснице. Суббота — отдых.",ids:["squat","inc","row","tri","hyper"]},
- U:{n:"Воскресенье · ноги + плечи + грудь",note:"Сгибания ног 3 подхода, разгибания 2 подхода с RIR 3. Понедельник — отдых; оцени ноги на боксе во вторник. Т-гриф с опорой грудью.",ids:["machine","curlleg","ext","chestrow","latraise","calfstand","hammer"]}
+ W:{n:"Среда · грудь + спина + бицепс",note:"Вместо разгибаний ног — пекдек на грудь. Ноги отдыхают перед боксом в четверг; жим не до отказа.",ids:["bench","lat","crosschest","curl","crunch"]},
+ F:{n:"Пятница · присед + сгибания ног",note:"Присед и сгибания ног — по 3 рабочих подхода. Гиперэкстензия только при хорошей переносимости поясницей. Суббота — отдых.",ids:["squat","inc","row","curlleg","tri","hyper"]},
+ U:{n:"Воскресенье · румынка + разгибания ног",note:"Румынская тяга 3×12–15 с лёгким весом и контролем поясницы, разгибания ног 3×10–15. Понедельник — отдых; оцени восстановление к боксу во вторник.",ids:["machine","rdl","ext","chestrow","latraise","calfstand","hammer"]}
 };
 const LEGACY_DAY_IDS={W:{bench:"B",lat:"A",ext:"A",curl:"B",crunch:"D"},F:{squat:"B",inc:"A",row:"B",tri:"A",hyper:"D"},U:{machine:"D",curlleg:"B",chestrow:"D",latraise:"A",calfstand:"C",hammer:"D"}};
 const SUPABASE_URL="https://ugtyisycsustoynkhehh.supabase.co";
@@ -105,6 +106,30 @@ S.steps=S.steps||{};
 S.completion=S.completion||{};
 if(S._programVersion!=="3.6"){S.block=1;S.day="W";S._programVersion="3.6";}
 
+// One-time historical correction requested by the user. Keep the original
+// exercise ID so prior synced logs and progression remain compatible.
+function migratePecDeckHistory(){
+  if(S._pecDeckBackfillV38)return false;
+  const weeks=Array.from({length:8},(_,i)=>i+1);
+  const candidates=weeks.filter(b=>{
+    const k=b+"W";
+    return S.done[k] || S.dates[k] || ["bench","lat","curl","crunch","crosschest"].some(id=>{
+      const l=S.logs[k+"-"+id];
+      return l && Array.isArray(l.sets) && l.sets.some(x=>Number(x)>0);
+    });
+  });
+  // Only backfill a Wednesday that is already present in the history.
+  if(!candidates.length)return false;
+  const b=candidates[candidates.length-1], key=b+"W-crosschest";
+  const old=S.logs[key]||{};
+  S.logs[key]={...old,weights:[30,30,30],sets:[10,10,10]};
+  S._pecDeckBackfillV38=true;
+  if(S.done[b+"W"]){
+    const n=completedExercises(b,"W");
+    S.completion[b+"W"]={count:n.length,total:dayIds("W",b).length,status:n.length===dayIds("W",b).length?"full":"partial"};
+  }
+  return true;
+}
 function setSyncStatus(t){const el=document.querySelector("#syncStatus");if(el)el.textContent=t}
 function save(){
   if(!applyingCloud)S._modifiedAt=Date.now();
@@ -142,11 +167,14 @@ async function pullOrSeedCloud(){
     S.logs=S.logs||{};S.done=S.done||{};S.dates=S.dates||{};S.steps=S.steps||{};S.completion=S.completion||{};
     localStorage.setItem("trainingTrackerV36",JSON.stringify(S));
     applyingCloud=false;
+    const backfilled=migratePecDeckHistory();
     render();
-    if(remote._programVersion!=="3.6"){save();}
+    if(remote._programVersion!=="3.6"||backfilled){save();}
   } else if(localTime>remoteTime){
+    migratePecDeckHistory();
     await pushCloud(); return;
   }
+  if(migratePecDeckHistory()){save();return;}
   setSyncStatus("✓ Синхронизировано · "+new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}));
 }
 function showAuth(session){
@@ -155,6 +183,7 @@ function showAuth(session){
   document.querySelector("#signedIn").style.display=cloudUser?"block":"none";
   document.querySelector("#syncUser").textContent=cloudUser?cloudUser.email:"";
   if(cloudUser)pullOrSeedCloud();
+  else if(migratePecDeckHistory()){save();render();}
 }
 async function login(){
   const email=document.querySelector("#loginEmail").value.trim();
@@ -330,7 +359,7 @@ document.querySelector("#copy").onclick=()=>clip(copyText(false));
 document.querySelector("#copyAll").onclick=()=>clip(copyText(true));
 document.querySelector("#export").onclick=()=>{
  const blob=new Blob([JSON.stringify({version:VERSION,...S},null,2)],{type:"application/json"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v36.json";a.click();
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v38.json";a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
 document.querySelector("#loginBtn").onclick=login;
