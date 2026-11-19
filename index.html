@@ -58,15 +58,18 @@ h1{font-size:22px}.blocks{display:flex;overflow-x:auto;gap:7px;margin:14px -2px;
 </main></div></div>
 
 <script>
-const VERSION="3.8 · программа 14.11";
+const VERSION="4.1 · выбор упражнений на руки";
 const phaseNames=["Неделя 1","Неделя 2","Неделя 3","Неделя 4","Неделя 5","Неделя 6","Неделя 7","Неделя 8"];
 const phaseDesc=Array.from({length:8},(_,i)=>`Неделя ${i+1}: двойная прогрессия по фактическим подходам. Без автоматической разгрузки; при боли уменьшай нагрузку.`);
 
 const E={
  bench:{n:"Жим штанги лёжа",k:"main",g:"chest",base:47.5,step:2.5,s:3,r:[6,8],rir:2,rest:"2–3 мин"},
  lat:{n:"Тяга верхнего блока узким хватом",k:"hyper",g:"back",base:45,step:2,s:3,r:[8,10],rir:2,rest:"2–3 мин"},
+ latparallel:{n:"Вертикальная тяга параллельным хватом",k:"hyper",g:"back",base:null,step:2.5,s:3,r:[8,12],rir:2,rest:"2–3 мин",note:"Вес подбери на первой тренировке; история ведётся отдельно."},
+ latone:{n:"Вертикальная тяга одной рукой",k:"hyper",g:"back",base:15,step:1,s:3,r:[8,12],rir:2,rest:"2–3 мин",note:"Вес на одну руку. В каждом подходе выполняй повторы обеими руками; записывай вес и повторы одной стороны."},
  ext:{n:"Разгибание ног",k:"leg",g:"legs",base:40,step:2.5,s:3,r:[10,15],rir:3,rest:"1–2 мин",note:"Воскресенье: 3 рабочих подхода. Следи, чтобы квадрицепсы восстановились к боксу во вторник."},
  crosschest:{n:"Пекдек — сведение рук на грудь",k:"hyper",g:"chest",base:30,step:2.5,s:3,r:[10,15],rir:2,rest:"1–2 мин",note:"Сведение рук в тренажёре на грудь, не обратный пекдек на заднюю дельту. Последняя тренировка: 30 кг × 10/10/10."},
+ pushdown:{n:"Разгибания рук на трицепс с верхнего блока",k:"hyper",g:"arms",base:13,step:1,s:3,r:[10,12],rir:2,rest:"1–2 мин"},
  curl:{n:"Бицепс сидя с супинацией",k:"hyper",g:"arms",base:10,step:2,s:3,r:[8,12],rir:2,rest:"1–2 мин"},
  crunch:{n:"Пресс — скручивания на блоке",k:"hyper",g:"core",base:11,step:1,s:3,r:[10,15],rir:2,rest:"1–2 мин"},
  squat:{n:"Присед со штангой",k:"legmain",g:"legs",base:47.5,step:2.5,s:3,r:[5,8],rir:3,rest:"2–3 мин",note:"47,5 кг — последний записанный результат, НЕ предписание. Пока болит поясница, уменьши вес/амплитуду или замени жимом ногами. Без боли."},
@@ -221,7 +224,23 @@ function setPairs(l,p){
   return out;
 }
 function rnd(v,st){return Math.max(st,Math.round(v/st)*st)}
-function dayIds(d,b){return days[d].ids}
+const W_BACK_OPTIONS=["lat","latparallel","latone"];
+function selectedWednesdayBack(b){
+ const v=S.wednesdayBack&&S.wednesdayBack[b];
+ return W_BACK_OPTIONS.includes(v)?v:"lat";
+}
+const ARM_OPTIONS=["curl","hammer","tri","pushdown"];
+function selectedArm(d,b,original){
+ const v=S.armChoices&&S.armChoices[b+d];
+ return ARM_OPTIONS.includes(v)?v:original;
+}
+function dayIds(d,b){
+ return days[d].ids.map(id=>{
+   if(d==="W"&&id==="lat")return selectedWednesdayBack(b);
+   if(["curl","tri","hammer"].includes(id))return selectedArm(d,b,id);
+   return id;
+ });
+}
 function plan(e,b){return{s:e.s,lo:e.r[0],hi:e.r[1],rir:e.rir}}
 function prev(id,b){
  for(let bb=b;bb>=1;bb--)for(const d of ["U","F","W"]){
@@ -314,6 +333,45 @@ function render(){
  document.querySelector("#phase").textContent=`Блок ${S.block} · ${phaseNames[S.block-1]}`;
  const d=days[S.day];document.querySelector("#title").textContent=d.n;document.querySelector("#note").textContent=d.note;
  const L=document.querySelector("#list");L.innerHTML="";
+ if(S.day==="W"){
+   const wrap=document.createElement("div");wrap.className="info small";
+   const lbl=document.createElement("label");lbl.textContent="Упражнение на спину в среду (выбери одно): ";
+   const select=document.createElement("select");select.style.cssText="display:block;width:100%;max-width:420px;margin-top:7px;padding:10px;border-radius:9px;background:var(--card);color:var(--text);border:1px solid var(--line)";
+   for(const id of W_BACK_OPTIONS){const o=document.createElement("option");o.value=id;o.textContent=E[id].n;select.appendChild(o)}
+   select.value=selectedWednesdayBack(S.block);
+   select.onchange=()=>{
+     S.wednesdayBack=S.wednesdayBack||{};
+     S.wednesdayBack[S.block]=select.value;
+     const k=S.block+"W";
+     if(S.done[k]){
+       const n=completedExercises(S.block,"W"),total=dayIds("W",S.block).length;
+       S.completion[k]={count:n.length,total,status:n.length===total?"full":"partial"};
+     }
+     save();render();
+   };
+   lbl.appendChild(select);wrap.appendChild(lbl);L.appendChild(wrap);
+ }
+
+ const armOriginal=d.ids.find(id=>["curl","tri","hammer"].includes(id));
+ if(armOriginal){
+   const wrap=document.createElement("div");wrap.className="info small";
+   const lbl=document.createElement("label");lbl.textContent="Упражнение на бицепс / трицепс (выбери фактически выполненное): ";
+   const select=document.createElement("select");select.style.cssText="display:block;width:100%;max-width:420px;margin-top:7px;padding:10px;border-radius:9px;background:var(--card);color:var(--text);border:1px solid var(--line)";
+   for(const id of ARM_OPTIONS){const o=document.createElement("option");o.value=id;o.textContent=E[id].n;select.appendChild(o)}
+   select.value=selectedArm(S.day,S.block,armOriginal);
+   select.onchange=()=>{
+     S.armChoices=S.armChoices||{};
+     S.armChoices[S.block+S.day]=select.value;
+     const k=S.block+S.day;
+     if(S.done[k]){
+       const n=completedExercises(S.block,S.day),total=dayIds(S.day,S.block).length;
+       S.completion[k]={count:n.length,total,status:n.length===total?"full":"partial"};
+     }
+     save();render();
+   };
+   lbl.appendChild(select);wrap.appendChild(lbl);L.appendChild(wrap);
+ }
+
  dayIds(S.day,S.block).forEach(id=>{
    const e=E[id],p=plan(e,S.block),key=S.block+S.day+"-"+id,l=S.logs[key]||{},r=rec(id,S.block),row=document.createElement("div");
    S.logs[key]=l; migrateLog(id,l,p);
@@ -359,7 +417,7 @@ document.querySelector("#copy").onclick=()=>clip(copyText(false));
 document.querySelector("#copyAll").onclick=()=>clip(copyText(true));
 document.querySelector("#export").onclick=()=>{
  const blob=new Blob([JSON.stringify({version:VERSION,...S},null,2)],{type:"application/json"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v38.json";a.click();
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="training-progress-v40.json";a.click();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
 document.querySelector("#loginBtn").onclick=login;
